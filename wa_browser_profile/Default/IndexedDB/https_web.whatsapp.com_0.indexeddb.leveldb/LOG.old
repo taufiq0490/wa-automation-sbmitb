@@ -1,0 +1,61 @@
+2026/09/01-06:28:53.639 7548 Reusing MANIFEST C:\MBA JKT (Taufiq)\Antigravity\WA Automation\wa_browser_profile\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/09/01-06:28:53.646 7548 Recovering log #6223
+2026/09/01-06:28:53.655 7548 Reusing old log C:\MBA JKT (Taufiq)\Antigravity\WA Automation\wa_browser_profile\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/006223.log 
+2026/09/01-06:28:57.960 7548 Compacting 1@1 + 1@2 files
+2026/09/01-06:28:58.090 7548 Generated table #6246@1: 51645 keys, 1787472 bytes
+2026/09/01-06:28:58.090 7548 Compacted 1@1 + 1@2 files => 1787472 bytes
+2026/09/01-06:28:58.092 7548 compacted to: files[ 0 2 50 19 0 0 0 ]
+2026/09/01-06:28:58.446 204c Compacting 1@1 + 9@2 files
+2026/09/01-06:28:58.601 204c Generated table #6247@1: 40446 keys, 2245309 bytes
+2026/09/01-06:28:58.800 204c Generated table #6248@1: 29552 keys, 2270237 bytes
+2026/09/01-06:28:59.014 204c Generated table #6249@1: 29404 keys, 2267447 bytes
+2026/09/01-06:28:59.221 204c Generated table #6250@1: 28670 keys, 2268347 bytes
+2026/09/01-06:28:59.363 204c Generated table #6251@1: 28147 keys, 2268103 bytes
+2026/09/01-06:28:59.545 204c Generated table #6252@1: 20567 keys, 2251002 bytes
+2026/09/01-06:28:59.596 204c Generated table #6253@1: 6534 keys, 2127238 bytes
+2026/09/01-06:28:59.630 204c Generated table #6254@1: 996 keys, 2114427 bytes
+2026/09/01-06:28:59.690 204c Generated table #6255@1: 10825 keys, 2140403 bytes
+2026/09/01-06:28:59.697 204c Generated table #6256@1: 21 keys, 5891 bytes
+2026/09/01-06:28:59.697 204c Compacted 1@1 + 9@2 files => 19958404 bytes
+2026/09/01-06:28:59.700 204c compacted to: files[ 0 1 51 19 0 0 0 ]
+2026/09/01-06:28:59.705 204c Delete type=2 #6180
+2026/09/01-06:28:59.707 204c Delete type=2 #6181
+2026/09/01-06:28:59.707 204c Delete type=2 #6182
+2026/09/01-06:28:59.708 204c Delete type=2 #6183
+2026/09/01-06:28:59.708 204c Delete type=2 #6184
+2026/09/01-06:28:59.708 204c Delete type=2 #6185
+2026/09/01-06:28:59.708 204c Delete type=2 #6211
+2026/09/01-06:28:59.708 204c Delete type=2 #6212
+2026/09/01-06:28:59.708 204c Delete type=2 #6213
+2026/09/01-06:28:59.708 204c Delete type=2 #6214
+2026/09/01-06:28:59.708 204c Delete type=2 #6226
+2026/09/01-06:28:59.709 204c Delete type=2 #6228
+2026/09/01-06:29:17.149 7548 Level-0 table #6258: started
+2026/09/01-06:29:17.206 7548 Level-0 table #6258: 1157658 bytes OK
+2026/09/01-06:29:17.263 7548 Delete type=0 #6223
+2026/09/01-06:29:17.272 7548 Compacting 1@0 + 1@1 files
+2026/09/01-06:29:17.431 7548 Generated table #6259@0: 27488 keys, 525159 bytes
+2026/09/01-06:29:17.485 7548 Generated table #6260@0: 30 keys, 2142 bytes
+2026/09/01-06:29:17.492 7548 Generated table #6261@0: 281 keys, 5377 bytes
+2026/09/01-06:29:17.496 7548 Generated table #6262@0: 73 keys, 1451 bytes
+2026/09/01-06:29:17.502 7548 Generated table #6263@0: 32 keys, 8958 bytes
+2026/09/01-06:29:17.502 7548 Compacted 1@0 + 1@1 files => 543087 bytes
+2026/09/01-06:29:17.504 7548 compacted to: files[ 0 5 51 19 0 0 0 ]
+2026/09/01-06:29:17.508 7548 Delete type=2 #6227
+2026/09/01-06:29:17.508 7548 Delete type=2 #6258
+2026/09/01-06:29:21.215 204c Moved #6259 to level-2 525159 bytes OK: files[ 0 4 52 19 0 0 0 ]
+2026/09/01-06:29:21.730 204c Compacting 1@2 + 5@3 files
+2026/09/01-06:29:21.875 204c Generated table #6264@2: 87322 keys, 2238811 bytes
+2026/09/01-06:29:22.022 204c Generated table #6265@2: 101125 keys, 2253634 bytes
+2026/09/01-06:29:22.357 204c Generated table #6266@2: 100810 keys, 2252907 bytes
+2026/09/01-06:29:22.507 204c Generated table #6267@2: 101479 keys, 2255029 bytes
+2026/09/01-06:29:22.810 204c Generated table #6268@2: 38625 keys, 2436617 bytes
+2026/09/01-06:29:22.819 204c Generated table #6269@2: 158 keys, 137542 bytes
+2026/09/01-06:29:22.819 204c Compacted 1@2 + 5@3 files => 11574540 bytes
+2026/09/01-06:29:22.821 204c compacted to: files[ 0 4 51 20 0 0 0 ]
+2026/09/01-06:29:22.827 204c Delete type=2 #6239
+2026/09/01-06:29:22.827 204c Delete type=2 #6240
+2026/09/01-06:29:22.828 204c Delete type=2 #6241
+2026/09/01-06:29:22.828 204c Delete type=2 #6242
+2026/09/01-06:29:22.828 204c Delete type=2 #6243
+2026/09/01-06:29:22.828 204c Delete type=2 #6259

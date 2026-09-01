@@ -1,0 +1,40 @@
+{
+  "id": {
+    "intro": "Selamat pagi. Izin konfirmasi dan reminder untuk jadwal perkuliahan di MBA Jakarta mendatang sebagai berikut :",
+    "closing": "Jika ada kendala teknis di kelas, dapat *Scan QR Code* yang tersedia di ruang kelas, staf akan langsung datang untuk membantu.\nDemikian kami informasikan,\nTerima kasih.",
+    "label_program": "Program",
+    "label_course": "Mata Kuliah",
+    "label_date": "Hari, Tanggal",
+    "label_time": "Waktu",
+    "label_room": "Ruangan",
+    "label_guest_lecturer": "Dosen Tamu",
+    "label_mentor": "Mentor",
+    "label_remarks": "Catatan",
+    "label_exam_mode": "Bentuk Ujian",
+    "exam_intro_single": "Terkait sesi ujian mendatang, {question}",
+    "exam_intro_multiple": "Terkait sesi ujian mendatang:\n{questions}",
+    "exam_ask_all": "Izin konfirmasi, apakah akan dilaksanahan Offline, Online atau Take Home?",
+    "exam_ask_offline": "mohon konfirmasi apakah ujian akan dilaksanakan secara Offline (di kampus)?",
+    "exam_ask_online": "mohon konfirmasi apakah ujian akan dilaksanakan secara Online?",
+    "exam_ask_takehome": "mohon konfirmasi apakah ujian akan dilaksanakan secara Take-Home?"
+  },
+  "en": {
+    "intro": "Good morning. Kindly confirm and reminder for the upcoming lecture schedule at MBA Jakarta as follows :",
+    "closing": "This is for your information,\nThank you.",
+    "label_program": "Program",
+    "label_course": "Course",
+    "label_date": "Day, Date",
+    "label_time": "Time",
+    "label_room": "Room",
+    "label_guest_lecturer": "Guest Lecturer",
+    "label_mentor": "Mentor",
+    "label_remarks": "Remarks",
+    "label_exam_mode": "Exam Mode",
+    "exam_intro_single": "Regarding the upcoming examination session, {question}",
+    "exam_intro_multiple": "Regarding the upcoming examination sessions:\n{questions}",
+    "exam_ask_all": "kindly confirm whether the exam will be conducted Offline (On-Campus), Online, or as a Take-Home exam?",
+    "exam_ask_offline": "kindly confirm whether the exam will be conducted Offline (On-Campus)?",
+    "exam_ask_online": "kindly confirm whether the exam will be conducted Online?",
+    "exam_ask_takehome": "kindly confirm whether the exam will be conducted as a Take-Home exam?"
+  }
+}

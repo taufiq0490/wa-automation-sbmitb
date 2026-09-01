@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBA ITB Jakarta - WhatsApp Lecture Reminder Automation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/style.css?v=3.2">
+</head>
+<body>
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+        <div class="header-container">
+            <div class="brand-box" onclick="switchMainTab('landing')" style="cursor: pointer;" title="Klik untuk kembali ke Beranda">
+                <img src="static/sbm_itb_logo.png" alt="SBM ITB Logo" class="header-sbm-logo">
+                <div class="brand-titles">
+                    <h1>SBM ITB Academic Operations</h1>
+                    <p>WhatsApp Weekly Reminder & Broadcast Automation</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <!-- Master Template Edit Button -->
+                <button id="btnOpenTemplateModal" class="btn btn-outline" title="Pengaturan Master Template Pesan WhatsApp">
+                    <span>⚙️ Master Template</span>
+                </button>
+
+                <!-- WhatsApp Background Status Badge & Connect Button -->
+                <div class="wa-status-badge" id="waStatusBadge" title="Status integrasi WhatsApp Web Background">
+                    <span class="status-dot warning" id="waStatusDot"></span>
+                    <span id="waStatusText">Memeriksa WhatsApp...</span>
+                    <button id="btnConnectWa" class="btn-micro" style="display: none;">Scan QR / Hubungkan</button>
+                </div>
+
+                <div class="sync-status">
+                    <span class="sync-dot"></span>
+                    <span id="syncTimestamp">Connected to Google Sheets</span>
+                </div>
+
+                <button id="btnRefresh" class="btn btn-outline" title="Tarik data terbaru dari Google Sheets">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                    </svg>
+                    <span>Sinkronisasi Sheet</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Navigation Tabs: Beranda, Multi-Prodi & Broadcast -->
+        <div class="top-nav-tabs-wrapper">
+            <div class="tabs-nav-container" id="prodiTabsContainer">
+                <button type="button" class="nav-tab-link active" id="tabLinkLanding" onclick="switchMainTab('landing')">
+                    <span class="tab-icon">🏠</span>
+                    <span class="tab-text">Beranda</span>
+                </button>
+                <button type="button" class="nav-tab-link" data-prodi="MBAJ" id="tabProdiMBAJ" onclick="switchProdiTab('MBAJ')">
+                    <span class="tab-icon">🎓</span>
+                    <span class="tab-text">MBA Jakarta</span>
+                </button>
+                <button type="button" class="nav-tab-link" data-prodi="MBAB" id="tabProdiMBAB" onclick="switchProdiTab('MBAB')">
+                    <span class="tab-icon">🏛️</span>
+                    <span class="tab-text">MBA Bandung</span>
+                </button>
+                <button type="button" class="nav-tab-link" data-prodi="SW" id="tabProdiSW" onclick="switchProdiTab('SW')">
+                    <span class="tab-icon">🚀</span>
+                    <span class="tab-text">S1 Kewirausahaan</span>
+                </button>
+                <button type="button" class="nav-tab-link" data-prodi="SM" id="tabProdiSM" onclick="switchProdiTab('SM')">
+                    <span class="tab-icon">💼</span>
+                    <span class="tab-text">S1 Manajemen</span>
+                </button>
+                <button type="button" class="nav-tab-link" data-prodi="MSM" id="tabProdiMSM" onclick="switchProdiTab('MSM')">
+                    <span class="tab-icon">🔬</span>
+                    <span class="tab-text">MSM</span>
+                </button>
+                <button type="button" class="nav-tab-link" data-prodi="DSM" id="tabProdiDSM" onclick="switchProdiTab('DSM')">
+                    <span class="tab-icon">📜</span>
+                    <span class="tab-text">DSM</span>
+                </button>
+                <button type="button" class="nav-tab-link broadcast-nav-tab" id="tabLinkBroadcast" onclick="switchMainTab('broadcast')">
+                    <span class="tab-icon">📢</span>
+                    <span class="tab-text">Blast WhatsApp</span>
+                    <span class="tab-badge" style="background: #10b981;">Instan</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Active Prodi Sub-Banner & PIN Security Bar (Visible only inside prodi dashboard) -->
+    <div class="prodi-sub-banner" id="prodiSubBanner" style="display: none;">
+        <div class="prodi-banner-container">
+            <div class="prodi-sub-info">
+                <span class="prodi-badge-icon" id="prodiBadgeIcon">🎓</span>
+                <div class="prodi-badge-details">
+                    <h2 class="prodi-title-text" id="prodiTitleText">MBA ITB Kampus Jakarta</h2>
+                    <span class="prodi-sheet-source" id="prodiSheetSource">Data Realtime: Sheet <strong>MCP MBAJ</strong></span>
+                </div>
+            </div>
+            <div class="prodi-pin-actions">
+                <button type="button" class="btn btn-sm btn-pin-action" onclick="switchMainTab('landing')" title="Kembali ke Halaman Beranda">
+                    <span>🏠 Beranda</span>
+                </button>
+                <span class="pin-status-pill unlocked" id="pinStatusPill">
+                    <span class="pin-status-icon">🔓</span>
+                    <span id="pinStatusText">Akses PIC Terbuka</span>
+                </span>
+                <button type="button" class="btn btn-sm btn-pin-action" id="btnOpenChangePinModal" title="Ubah PIN Akses Program Studi Ini">
+                    <span>🔑 Ganti PIN</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-pin-action lock-btn" id="btnLockCurrentProdi" title="Kunci tab prodi ini dan amankan sesi">
+                    <span>🔒 Kunci Tab & Keluar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Workspace Container -->
+    <main class="main-content" style="padding: 0; max-width: 100%; margin: 0;">
+        <!-- VIEW 0: Landing Page (Highlight & Portal Selection) -->
+        <div id="viewLanding" class="view-panel active">
+            <div class="landing-wrapper">
+
+                <!-- ═══ HERO SECTION ═══ -->
+                <section class="landing-hero">
+                    <div class="hero-inner">
+                        <div class="hero-logo-box">
+                            <img src="static/sbm_itb_logo.png" alt="SBM ITB Logo" class="hero-logo-img">
+                        </div>
+                        <div class="hero-badge-pill">
+                            <span>✨</span> Official Academic Operations Portal
+                        </div>
+                        <h1 class="hero-title">Sistem Reminder &amp; Broadcast<br>Dosen SBM ITB</h1>
+                        <p class="hero-subtitle">
+                            Platform otomasi pengingat perkuliahan WhatsApp yang terintegrasi, aman, dan mudah digunakan untuk seluruh Program Studi SBM Institut Teknologi Bandung.
+                        </p>
+                        <div class="hero-features-row">
+                            <div class="hero-feat-item">📱 WhatsApp Web 1-Klik</div>
+                            <div class="hero-feat-item">🔐 Keamanan PIN per Prodi</div>
+                            <div class="hero-feat-item">🔄 Sync Realtime Google Sheets</div>
+                            <div class="hero-feat-item">📋 1 Dosen = 1 Pesan Rapi</div>
+                            <div class="hero-feat-item">📢 Blast Broadcast Instan</div>
+                        </div>
+
+                        <!-- Stats Bar -->
+                        <div class="hero-stats-bar">
+                            <div class="hero-stat-item">
+                                <div class="hero-stat-number">6</div>
+                                <div class="hero-stat-label">Program Studi</div>
+                            </div>
+                            <div class="hero-stat-item">
+                                <div class="hero-stat-number">Auto</div>
+                                <div class="hero-stat-label">Sinkron Sheet</div>
+                            </div>
+                            <div class="hero-stat-item">
+                                <div class="hero-stat-number">PIN</div>
+                                <div class="hero-stat-label">Keamanan Akses</div>
+                            </div>
+                            <div class="hero-stat-item">
+                                <div class="hero-stat-number">WA</div>
+                                <div class="hero-stat-label">Kirim Langsung</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ═══ BODY SECTION ═══ -->
+                <div class="landing-body">
+
+                    <!-- Section Header -->
+                    <div class="landing-section-header">
+                        <h2>🎓 Pilih Program Studi</h2>
+                        <p>Silakan pilih prodi Anda untuk membuka jadwal perkuliahan &amp; pengiriman WhatsApp reminder.</p>
+                    </div>
+
+                    <!-- Prodi Cards Grid: 3 columns -->
+                    <div class="prodi-cards-grid" id="landingProdiCardsGrid">
+
+                        <!-- Card: MBA Jakarta -->
+                        <div class="prodi-portal-card" onclick="switchProdiTab('MBAJ')">
+                            <div class="prodi-card-accent"></div>
+                            <div class="prodi-card-inner">
+                                <div class="prodi-card-top">
+                                    <div class="prodi-card-icon-wrap">🎓</div>
+                                    <span class="prodi-lock-badge locked" id="badgeLock_MBAJ">🔒 Perlu PIN</span>
+                                </div>
+                                <div class="prodi-card-body">
+                                    <h3>MBA Kampus Jakarta</h3>
+                                    <div class="prodi-card-meta">
+                                        Sheet: <strong>MCP MBAJ</strong><br>
+                                        Lokasi: <strong>SBM ITB Kampus Jakarta</strong>
+                                    </div>
+                                </div>
+                                <div class="prodi-card-foot">
+                                    <span class="prodi-code-tag">MBAJ · S2</span>
+                                    <button type="button" class="btn-enter-prodi">Buka ➔</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card: MBA Bandung -->
+                        <div class="prodi-portal-card" onclick="switchProdiTab('MBAB')">
+                            <div class="prodi-card-accent"></div>
+                            <div class="prodi-card-inner">
+                                <div class="prodi-card-top">
+                                    <div class="prodi-card-icon-wrap">🏛️</div>
+                                    <span class="prodi-lock-badge locked" id="badgeLock_MBAB">🔒 Perlu PIN</span>
+                                </div>
+                                <div class="prodi-card-body">
+                                    <h3>MBA Kampus Bandung</h3>
+                                    <div class="prodi-card-meta">
+                                        Sheet: <strong>MCP MBAB</strong><br>
+                                        Lokasi: <strong>SBM ITB Kampus Bandung</strong>
+                                    </div>
+                                </div>
+                                <div class="prodi-card-foot">
+                                    <span class="prodi-code-tag">MBAB · S2</span>
+                                    <button type="button" class="btn-enter-prodi">Buka ➔</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card: Sarjana Kewirausahaan -->
+                        <div class="prodi-portal-card" onclick="switchProdiTab('SW')">
+                            <div class="prodi-card-accent"></div>
+                            <div class="prodi-card-inner">
+                                <div class="prodi-card-top">
+                                    <div class="prodi-card-icon-wrap">🚀</div>
+                                    <span class="prodi-lock-badge locked" id="badgeLock_SW">🔒 Perlu PIN</span>
+                                </div>
+                                <div class="prodi-card-body">
+                                    <h3>Sarjana Kewirausahaan</h3>
+                                    <div class="prodi-card-meta">
+                                        Sheet: <strong>MCP SW</strong><br>
+                                        Lokasi: <strong>Kampus Ganesha / Jatinangor</strong>
+                                    </div>
+                                </div>
+                                <div class="prodi-card-foot">
+                                    <span class="prodi-code-tag">SW · S1</span>
+                                    <button type="button" class="btn-enter-prodi">Buka ➔</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card: Sarjana Manajemen -->
+                        <div class="prodi-portal-card" onclick="switchProdiTab('SM')">
+                            <div class="prodi-card-accent"></div>
+                            <div class="prodi-card-inner">
+                                <div class="prodi-card-top">
+                                    <div class="prodi-card-icon-wrap">💼</div>
+                                    <span class="prodi-lock-badge locked" id="badgeLock_SM">🔒 Perlu PIN</span>
+                                </div>
+                                <div class="prodi-card-body">
+                                    <h3>Sarjana Manajemen</h3>
+                                    <div class="prodi-card-meta">
+                                        Sheet: <strong>MCP SM</strong><br>
+                                        Lokasi: <strong>SBM ITB Kampus Utama</strong>
+                                    </div>
+                                </div>
+                                <div class="prodi-card-foot">
+                                    <span class="prodi-code-tag">SM · S1</span>
+                                    <button type="button" class="btn-enter-prodi">Buka ➔</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card: MSM -->
+                        <div class="prodi-portal-card" onclick="switchProdiTab('MSM')">
+                            <div class="prodi-card-accent"></div>
+                            <div class="prodi-card-inner">
+                                <div class="prodi-card-top">
+                                    <div class="prodi-card-icon-wrap">🔬</div>
+                                    <span class="prodi-lock-badge locked" id="badgeLock_MSM">🔒 Perlu PIN</span>
+                                </div>
+                                <div class="prodi-card-body">
+                                    <h3>Master of Science in Management</h3>
+                                    <div class="prodi-card-meta">
+                                        Sheet: <strong>MCP MSM</strong><br>
+                                        Lokasi: <strong>SBM ITB Kampus Bandung</strong>
+                                    </div>
+                                </div>
+                                <div class="prodi-card-foot">
+                                    <span class="prodi-code-tag">MSM · S2</span>
+                                    <button type="button" class="btn-enter-prodi">Buka ➔</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card: DSM -->
+                        <div class="prodi-portal-card" onclick="switchProdiTab('DSM')">
+                            <div class="prodi-card-accent"></div>
+                            <div class="prodi-card-inner">
+                                <div class="prodi-card-top">
+                                    <div class="prodi-card-icon-wrap">📜</div>
+                                    <span class="prodi-lock-badge locked" id="badgeLock_DSM">🔒 Perlu PIN</span>
+                                </div>
+                                <div class="prodi-card-body">
+                                    <h3>Doctor of Science in Management</h3>
+                                    <div class="prodi-card-meta">
+                                        Sheet: <strong>MCP DSM</strong><br>
+                                        Lokasi: <strong>SBM ITB Jakarta / Bandung</strong>
+                                    </div>
+                                </div>
+                                <div class="prodi-card-foot">
+                                    <span class="prodi-code-tag">DSM · S3</span>
+                                    <button type="button" class="btn-enter-prodi">Buka ➔</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div><!-- /prodi-cards-grid -->
+
+                    <!-- Broadcast Banner -->
+                    <section class="landing-blast-banner">
+                        <div class="blast-banner-left">
+                            <div class="blast-banner-icon">📢</div>
+                            <div class="blast-banner-text">
+                                <h3>Kirim Pengumuman Broadcast / Dokumen</h3>
+                                <p>Blast pesan instan atau lampiran ke banyak dosen &amp; mentor sekaligus, tanpa perlu jadwal perkuliahan.</p>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-blast-banner" onclick="switchMainTab('broadcast')">
+                            📢 Buka Blast WhatsApp
+                        </button>
+                    </section>
+
+                </div><!-- /landing-body -->
+            </div><!-- /landing-wrapper -->
+        </div><!-- /viewLanding -->
+
+        <!-- VIEW 1: WhatsApp Reminder Dashboard -->
+        <div id="viewReminder" class="view-panel" style="display: none;">
+            <!-- Control Panel & Filters -->
+            <section class="control-panel">
+                <div class="panel-card filter-card">
+                    <div class="panel-header">
+                        <h2>📅 Filter Jadwal Reminder</h2>
+                        <span class="badge-subtitle">Pilih jadwal berdasarkan hari pengiriman & bahasa pesan</span>
+                    </div>
+
+                    <div class="filter-top-row">
+                        <div class="filter-group-buttons">
+                            <button class="filter-btn active" data-type="weekend" id="btnFilterWeekend">
+                                <div class="btn-icon">🗓️</div>
+                                <div class="btn-label">
+                                    <strong>Kelas Weekend</strong>
+                                    <small>Kirim Hari Rabu (Sabtu - Minggu)</small>
+                                </div>
+                            </button>
+
+                            <button class="filter-btn" data-type="weekday" id="btnFilterWeekday">
+                                <div class="btn-icon">💼</div>
+                                <div class="btn-label">
+                                    <strong>Kelas Weekday</strong>
+                                    <small>Kirim Hari Kamis (Senin - Jumat)</small>
+                                </div>
+                            </button>
+
+                            <button class="filter-btn" data-type="all" id="btnFilterAll">
+                                <div class="btn-icon">📋</div>
+                                <div class="btn-label">
+                                    <strong>Semua Sesi</strong>
+                                    <small>Seluruh Kelas di Minggu Terpilih</small>
+                                </div>
+                            </button>
+                        </div>
+
+                        <!-- Global Language Selector -->
+                        <div class="lang-selector-box">
+                            <label class="lang-selector-title">🌐 Pilihan Bahasa Default:</label>
+                            <div class="lang-btn-group">
+                                <button type="button" class="lang-pill-btn active" data-lang="id" id="btnLangId" title="Gunakan template Bahasa Indonesia (Sopan tanpa kata 'Anda')">
+                                    <span>🇮🇩 Bahasa Indonesia</span>
+                                </button>
+                                <button type="button" class="lang-pill-btn" data-lang="en" id="btnLangEn" title="Use English Template">
+                                    <span>🇬🇧 English</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-selectors">
+                        <div class="form-control">
+                            <label for="selectWeek">Pilih Minggu Perkuliahan:</label>
+                            <select id="selectWeek" class="select-input">
+                                <option value="">Memuat daftar minggu...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-control date-range-group">
+                            <label>Rentang Tanggal:</label>
+                            <div class="date-inputs">
+                                <input type="date" id="startDate" class="date-input">
+                                <span>s/d</span>
+                                <input type="date" id="endDate" class="date-input">
+                            </div>
+                        </div>
+
+                        <div class="form-control search-control">
+                            <label for="searchInput">Cari Dosen / Mata Kuliah:</label>
+                            <input type="text" id="searchInput" class="search-input" placeholder="Ketik nama dosen, kode MK, atau kelas...">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary KPI Metric Cards -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-icon blue">👨‍🏫</div>
+                        <div class="metric-info">
+                            <span class="metric-label">Total Dosen</span>
+                            <h3 id="statTotalLecturers">0</h3>
+                            <span class="metric-foot">1 pesan per dosen</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon gold">📚</div>
+                        <div class="metric-info">
+                            <span class="metric-label">Total Sesi Kelas</span>
+                            <h3 id="statTotalSessions">0</h3>
+                            <span class="metric-foot">Kuliah & Ujian</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon green">✅</div>
+                        <div class="metric-info">
+                            <span class="metric-label">Status Terkirim</span>
+                            <h3 id="statSentCount">0 / 0</h3>
+                            <div class="progress-bar-bg">
+                                <div id="sentProgressBar" class="progress-bar-fill" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon orange">⚠️</div>
+                        <div class="metric-info">
+                            <span class="metric-label">No. WA Belum Ada</span>
+                            <h3 id="statMissingPhone">0</h3>
+                            <span class="metric-foot" id="statMissingFoot">Perlu dilengkapi</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Lecturers Queue Section -->
+            <section class="lecturers-section">
+                <div class="section-title-bar">
+                    <div class="title-left">
+                        <h2>Daftar Pengingat per Dosen</h2>
+                        <span id="queueCountBadge" class="count-pill">0 Dosen Ditemukan</span>
+                    </div>
+                    <div class="title-right-actions">
+                        <button id="btnSendAllBatch" class="btn btn-primary btn-batch-send" title="Kirim otomatis semua pesan yang belum terkirim di background">
+                            <span>⚡ Kirim Semua yang Belum Terkirim</span>
+                        </button>
+                        <div class="filter-status-radios">
+                            <label class="radio-label">
+                                <input type="radio" name="statusFilter" value="all" checked> Semua
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="statusFilter" value="pending"> Belum Dikirim
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="statusFilter" value="sent"> Sudah Dikirim
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading Spinner Container -->
+                <div id="loadingState" class="state-container" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Mengambil jadwal dan kontak dosen dari Google Sheets...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="state-container" style="display: none;">
+                    <div class="empty-icon">📂</div>
+                    <h3>Tidak ada jadwal kelas pada periode ini</h3>
+                    <p>Silakan pilih minggu perkuliahan lain atau sesuaikan filter hari.</p>
+                </div>
+
+                <!-- Dynamic Lecturer Cards Container -->
+                <div id="lecturersList" class="cards-list"></div>
+            </section>
+        </div>
+
+        <!-- VIEW 2: Blast WhatsApp (Broadcast) Dashboard -->
+        <div id="viewBroadcast" class="view-panel" style="display: none;">
+            <!-- Broadcast Main Layout Grid -->
+            <div class="broadcast-layout-grid">
+                <!-- Left Column: Message Composer & Settings -->
+                <div class="broadcast-col-composer">
+                    <div class="panel-card">
+                        <div class="panel-header" style="margin-bottom: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h2>✉️ Komposer Pesan Broadcast</h2>
+                                    <span class="badge-subtitle">Kirim pesan langsung ke banyak dosen / mentor tanpa jadwal</span>
+                                </div>
+                                <span class="tag tag-status" style="background: #e0f2fe; color: #0284c7; font-weight: 700;">Instan</span>
+                            </div>
+                        </div>
+
+                        <!-- Saved Broadcast Templates Selector & Manager -->
+                        <div class="form-control" style="margin-bottom: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.4rem;">
+                                <label for="selectBroadcastTemplate" style="margin-bottom: 0; font-weight: 600; color: var(--text-main);">📁 Template Tersimpan:</label>
+                                <div style="display: flex; gap: 0.4rem;">
+                                    <button type="button" class="btn-micro-action" id="btnSaveCurrentAsTemplate" title="Simpan isi pesan yang sedang diketik sebagai template baru" style="color: #15803d; border-color: #bbf7d0; background: #f0fdf4; font-weight: 600;">
+                                        <span>💾 Simpan Template</span>
+                                    </button>
+                                    <button type="button" class="btn-micro-action" id="btnDeleteSelectedTemplate" title="Hapus template terpilih" style="display: none; color: #dc2626; border-color: #fecaca; background: #fef2f2;">
+                                        <span>🗑️ Hapus</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <select id="selectBroadcastTemplate" class="select-input">
+                                <option value="">-- Pilih Template Tersimpan atau Ketik Pesan Baru --</option>
+                            </select>
+                        </div>
+
+                        <!-- Tag Insert Helper Pills -->
+                        <div class="tag-helper-box">
+                            <span class="tag-helper-label">💡 Sisipkan Tag Personalisasi:</span>
+                            <div class="tag-pills-row">
+                                <button type="button" class="btn-tag-pill" id="btnInsertTagName" title="Menyisipkan nama depan dosen/mentor secara otomatis (gelar & sapaan otomatis dibersihkan)">
+                                    <span>➕ <strong>{nama}</strong> (Nama Depan)</span>
+                                </button>
+                                <button type="button" class="btn-tag-pill" id="btnInsertTagSapaan" title="Menyisipkan 'Bapak/Ibu {nama}'">
+                                    <span>➕ <strong>{sapaan}</strong> (Bpk/Ibu Nama)</span>
+                                </button>
+                                <button type="button" class="btn-tag-pill" id="btnInsertTagFullName" title="Menyisipkan nama lengkap">
+                                    <span>➕ <strong>{nama_lengkap}</strong></span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Message Textarea Input -->
+                        <div class="form-control" style="margin-bottom: 1rem;">
+                            <label for="inputBroadcastMessage">Isi Pesan WhatsApp:</label>
+                            <textarea id="inputBroadcastMessage" class="text-area-input broadcast-textarea" rows="7" placeholder="Tuliskan pesan broadcast Anda di sini... Contoh:&#10;&#10;Selamat siang Yth. Bapak/Ibu {nama},&#10;&#10;Kami dari Sekretariat MBA ITB Kampus Jakarta menginformasikan bahwa...&#10;&#10;Terima kasih."></textarea>
+                            <small class="help-text">Gunakan <code>*tebal*</code>, <code>_miring_</code>, atau <code>~coret~</code> untuk format tulisan WhatsApp.</small>
+                        </div>
+
+                        <!-- File Attachment Box (PDF, Image, Word, Excel) -->
+                        <div class="attachment-upload-section">
+                            <label class="attachment-label">📎 Lampiran File (PDF / Gambar / Docx / Excel):</label>
+                            <div class="attachment-dropzone" id="attachmentDropzone">
+                                <input type="file" id="broadcastFileInput" class="hidden-file-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.txt">
+                                <div class="dropzone-empty" id="dropzoneEmpty">
+                                    <div class="dropzone-icon">📁</div>
+                                    <div class="dropzone-text">
+                                        <strong>Klik untuk memilih file</strong> atau seret (drag & drop) file ke sini
+                                        <small>Mendukung PDF, Gambar, Word, Excel (Maks. 25 MB)</small>
+                                    </div>
+                                </div>
+                                <div class="dropzone-file-card" id="dropzoneFileCard" style="display: none;">
+                                    <div class="file-card-left">
+                                        <span class="file-icon" id="dropzoneFileIcon">📄</span>
+                                        <div class="file-details">
+                                            <strong id="dropzoneFileName">file.pdf</strong>
+                                            <small id="dropzoneFileSize">0 KB</small>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn-remove-file" id="btnRemoveAttachment" title="Hapus Lampiran">&times;</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Anti-Ban Safe Delay Setting -->
+                        <div class="form-control" style="margin-top: 1rem;">
+                            <label for="selectBroadcastDelay">⏱️ Jeda Antar Pengiriman (Anti-Ban WhatsApp):</label>
+                            <select id="selectBroadcastDelay" class="select-input small">
+                                <option value="3" selected>3 Detik (Cepat & Aman)</option>
+                                <option value="5">5 Detik (Sangat Aman)</option>
+                                <option value="8">8 Detik (Ekstra Perlindungan Akun)</option>
+                            </select>
+                        </div>
+
+                        <!-- Live Message Bubble Preview -->
+                        <div class="broadcast-preview-box" style="margin-top: 1.25rem;">
+                            <div class="preview-box-header">
+                                <span>👁️ Live Preview Tampilan Pesan:</span>
+                                <span class="preview-sample-target" id="previewSampleTarget">Penerima: Dosen</span>
+                            </div>
+                            <div class="whatsapp-bubble broadcast-bubble" id="broadcastLivePreview">
+                                <!-- Dynamic message preview -->
+                            </div>
+                            <div class="attachment-preview-badge" id="previewAttachmentBadge" style="display: none;">
+                                <span>📎 Terlampir: <strong id="previewAttachmentName">-</strong></span>
+                            </div>
+                        </div>
+
+                        <!-- Broadcast Action Buttons -->
+                        <div class="broadcast-actions-box">
+                            <button id="btnStartBroadcast" class="btn btn-primary btn-large-send" title="Mulai pengiriman pesan ke penerima yang dipilih">
+                                <span>🚀 Kirim Broadcast ke <strong id="btnRecipientCount">0</strong> Penerima</span>
+                            </button>
+                            <button id="btnCancelBroadcast" class="btn btn-secondary" style="display: none;" title="Hentikan pengiriman broadcast yang sedang berjalan">
+                                <span>⏸️ Hentikan Broadcast</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Recipient Selector -->
+                <div class="broadcast-col-recipients">
+                    <div class="panel-card">
+                        <div class="panel-header" style="margin-bottom: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                                <div>
+                                    <h2>👥 Pilih Penerima</h2>
+                                    <span class="badge-subtitle">Pilih dosen, mentor, atau kontak WhatsApp</span>
+                                </div>
+                                <span id="broadcastSelectedBadge" class="count-pill">0 Dipilih</span>
+                            </div>
+                        </div>
+
+                        <!-- Recipient Source Tabs: Sheet vs WhatsApp Web -->
+                        <div class="recipient-source-tabs">
+                            <button type="button" class="rcp-tab-btn active" data-source="sheet" id="tabSourceSheet">
+                                <span>🎓 Dosen & Mentor (Sheet)</span>
+                            </button>
+                            <button type="button" class="rcp-tab-btn" data-source="wa" id="tabSourceWa">
+                                <span>📱 Kontak WhatsApp Web</span>
+                            </button>
+                            <button type="button" class="btn-micro-sync" id="btnSyncWaContacts" title="Tarik data kontak terbaru dari sesi WhatsApp Web lokal">
+                                <span>📥 Tarik Kontak WA</span>
+                            </button>
+                        </div>
+
+                        <!-- Category Filter Pills (For Sheet Contacts) -->
+                        <div class="recipient-category-pills" id="sheetCategoryFilters">
+                            <button type="button" class="cat-pill active" data-cat="all">Semua (<span id="countCatAll">0</span>)</button>
+                            <button type="button" class="cat-pill" data-cat="scheduled">Terjadwal Semester Ini (<span id="countCatSched">0</span>)</button>
+                            <button type="button" class="cat-pill" data-cat="dosen">Dosen (<span id="countCatDosen">0</span>)</button>
+                            <button type="button" class="cat-pill" data-cat="mentor">Mentor (<span id="countCatMentor">0</span>)</button>
+                        </div>
+
+                        <!-- Search & Selection Toolbar -->
+                        <div class="recipient-toolbar">
+                            <div class="search-box-wrapper">
+                                <input type="text" id="inputBroadcastSearch" class="search-input" placeholder="🔍 Cari nama penerima atau nomor...">
+                            </div>
+                            <div class="selection-bulk-buttons">
+                                <button type="button" class="btn-micro-action" id="btnOpenManualContactModal" title="Ketik atau tempel nomor penerima baru secara bebas" style="color: var(--primary-blue); font-weight: 700; border-color: #bfdbfe; background: #eff6ff;">➕ Tempel Nomor</button>
+                                <button type="button" class="btn-micro-action" id="btnSelectAllRecipients">☑️ Semua</button>
+                                <button type="button" class="btn-micro-action" id="btnDeselectAllRecipients">⬜ Batal</button>
+                            </div>
+                        </div>
+
+                        <!-- Recipient List Container -->
+                        <div class="recipient-list-container">
+                            <div id="broadcastLoadingRecipients" class="state-container small" style="display: none;">
+                                <div class="spinner small"></div>
+                                <p>Memuat daftar kontak...</p>
+                            </div>
+                            <div id="broadcastEmptyRecipients" class="state-container small" style="display: none;">
+                                <div class="empty-icon">📂</div>
+                                <p>Tidak ada kontak yang cocok dengan filter pencarian.</p>
+                            </div>
+                            <div id="broadcastRecipientList" class="recipient-items-list">
+                                <!-- Dynamic recipient check items -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Broadcast Live Progress & Status Feed Section -->
+            <section class="broadcast-progress-section" id="broadcastProgressSection" style="display: none; margin-top: 1.5rem;">
+                <div class="panel-card progress-card">
+                    <div class="progress-header">
+                        <div>
+                            <h3 id="progressTitle">🚀 Proses Pengiriman Broadcast...</h3>
+                            <span class="badge-subtitle" id="progressSubtitle">Sedang mengirim pesan secara berurutan di background</span>
+                        </div>
+                        <div class="progress-stats-pill">
+                            <span id="progressStatText">0 / 0 Terkirim</span>
+                        </div>
+                    </div>
+
+                    <div class="progress-bar-bg large">
+                        <div id="broadcastProgressBarFill" class="progress-bar-fill" style="width: 0%;"></div>
+                    </div>
+
+                    <!-- Live Log Feed Table -->
+                    <div class="broadcast-log-table-container" style="margin-top: 1.25rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; gap: 0.5rem;">
+                            <h4 style="margin: 0; font-weight: 700; color: var(--text-main);">📋 Log Status Pengiriman:</h4>
+                            <button type="button" class="btn-micro-action" id="btnClearAllBroadcastLogs" style="color: #dc2626; border-color: #fecaca; background: #fef2f2; font-weight: 600;" title="Hapus seluruh riwayat log pengiriman">
+                                <span>🗑️ Kosongkan Log</span>
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="st-data-table broadcast-log-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px; text-align: center;">No.</th>
+                                        <th>Nama Penerima</th>
+                                        <th style="width: 140px; text-align: center;">No. WhatsApp</th>
+                                        <th style="width: 100px; text-align: center;">Lampiran</th>
+                                        <th style="width: 140px; text-align: center;">Waktu</th>
+                                        <th style="width: 120px; text-align: center;">Status</th>
+                                        <th style="width: 70px; text-align: center;">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="broadcastLogTableBody">
+                                    <!-- Dynamic real-time log rows inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Master Template Editor Modal -->
+    <div id="templateModal" class="modal-backdrop" style="display: none;">
+        <div class="modal-box modal-box-large">
+            <div class="modal-header">
+                <div class="modal-title-with-badge">
+                    <h3>⚙️ Pengaturan Master Template Pesan WhatsApp</h3>
+                    <span class="badge-subtitle">Edit format baku pesan pengingat perkuliahan & ujian tanpa ubah kode</span>
+                </div>
+                <button class="modal-close" id="btnCloseTemplateModal">&times;</button>
+            </div>
+            
+            <!-- Template Language Tabs -->
+            <div class="template-lang-tabs">
+                <button type="button" class="tpl-tab-btn active" data-tpl-lang="id" id="tplTabId">
+                    <span>🇮🇩 Bahasa Indonesia</span>
+                </button>
+                <button type="button" class="tpl-tab-btn" data-tpl-lang="en" id="tplTabEn">
+                    <span>🇬🇧 English</span>
+                </button>
+            </div>
+
+            <div class="modal-body modal-grid-layout">
+                <!-- Left Column: Form Inputs -->
+                <div class="template-form-col">
+                    <div class="form-group">
+                        <label for="inputTplIntro"><strong>Salam Pembuka (Intro / Greeting):</strong></label>
+                        <textarea id="inputTplIntro" class="text-area-input" rows="3" placeholder="Contoh: Selamat pagi. Izin konfirmasi dan reminder..."></textarea>
+                        <small class="help-text">Teks ini diletakkan di baris paling awal pesan sebelum daftar jadwal.</small>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label for="inputTplClosing"><strong>Salam Penutup (Closing):</strong></label>
+                        <textarea id="inputTplClosing" class="text-area-input" rows="3" placeholder="Contoh: Demikian kami informasikan, Terima kasih."></textarea>
+                        <small class="help-text">Teks ini diletakkan di baris paling akhir pesan setelah daftar jadwal / ujian.</small>
+                    </div>
+
+                    <!-- Collapsible Advanced Settings -->
+                    <details class="tpl-details-accordion" style="margin-top: 1.25rem;">
+                        <summary class="accordion-summary">
+                            <span>⚙️ Pengaturan Lanjutan (Label Sesi & Konfirmasi Ujian)</span>
+                        </summary>
+                        <div class="accordion-content">
+                            <div class="labels-grid">
+                                <div class="form-control">
+                                    <label for="inputLblProgram">Label Program:</label>
+                                    <input type="text" id="inputLblProgram" class="text-input small">
+                                </div>
+                                <div class="form-control">
+                                    <label for="inputLblCourse">Label Mata Kuliah:</label>
+                                    <input type="text" id="inputLblCourse" class="text-input small">
+                                </div>
+                                <div class="form-control">
+                                    <label for="inputLblDate">Label Hari, Tanggal:</label>
+                                    <input type="text" id="inputLblDate" class="text-input small">
+                                </div>
+                                <div class="form-control">
+                                    <label for="inputLblTime">Label Waktu:</label>
+                                    <input type="text" id="inputLblTime" class="text-input small">
+                                </div>
+                                <div class="form-control">
+                                    <label for="inputLblRoom">Label Ruangan:</label>
+                                    <input type="text" id="inputLblRoom" class="text-input small">
+                                </div>
+                                <div class="form-control">
+                                    <label for="inputLblGuest">Label Dosen Tamu:</label>
+                                    <input type="text" id="inputLblGuest" class="text-input small">
+                                </div>
+                                <div class="form-control">
+                                    <label for="inputLblMentor">Label Mentor:</label>
+                                    <input type="text" id="inputLblMentor" class="text-input small">
+                                </div>
+                                <div class="form-control">
+                                    <label for="inputLblRemarks">Label Catatan:</label>
+                                    <input type="text" id="inputLblRemarks" class="text-input small">
+                                </div>
+                            </div>
+
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label for="inputTplExamAskAll"><strong>Pertanyaan Ujian (Opsi Lengkap):</strong></label>
+                                <input type="text" id="inputTplExamAskAll" class="text-input">
+                            </div>
+                        </div>
+                    </details>
+                </div>
+
+                <!-- Right Column: Live Preview -->
+                <div class="template-preview-col">
+                    <div class="preview-box-header">
+                        <span>👁️ Live Preview Hasil Pesan WhatsApp:</span>
+                    </div>
+                    <div class="whatsapp-bubble preview-bubble" id="templateLivePreview">
+                        <!-- Dynamic preview content -->
+                    </div>
+                    <small class="preview-note">Preview di atas mencerminkan perubahan teks secara langsung.</small>
+                </div>
+            </div>
+
+            <div class="modal-footer space-between">
+                <button class="btn btn-outline-danger" id="btnResetTemplate" title="Kembalikan semua template ke format bawaan standar MBA ITB">
+                    🔄 Reset ke Standar
+                </button>
+                <div class="modal-footer-right">
+                    <button class="btn btn-secondary" id="btnCancelTemplate">Batal</button>
+                    <button class="btn btn-primary" id="btnSaveTemplate">💾 Simpan Master Pesan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Simpan Template Broadcast Baru -->
+    <div id="saveBroadcastTemplateModal" class="modal-backdrop" style="display: none;">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>💾 Simpan Pesan Sebagai Template</h3>
+                <button class="modal-close" id="btnCloseSaveTemplateModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="inputSaveTemplateTitle"><strong>Judul / Nama Template:</strong></label>
+                    <input type="text" id="inputSaveTemplateTitle" class="text-input" placeholder="Contoh: Undangan Rapat Dosen, Pengumuman Libur, dll." style="width: 100%; padding: 0.6rem 0.8rem; border: 1px solid var(--border-color); border-radius: 8px;">
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label><strong>Pratinjau Isi Pesan yang Disimpan:</strong></label>
+                    <div id="saveTemplatePreviewText" style="max-height: 140px; overflow-y: auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.6rem 0.8rem; font-size: 0.82rem; white-space: pre-wrap; color: #334155;"></div>
+                </div>
+            </div>
+            <div class="modal-footer space-between">
+                <button type="button" class="btn btn-secondary" id="btnCancelSaveTemplate">Batal</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitSaveTemplate">
+                    <span>💾 Simpan Template</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Contacts Modal (Paste / Input List) -->
+    <div id="manualContactModal" class="modal-backdrop" style="display: none;">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>➕ Tambah / Tempel Kontak Penerima</h3>
+                <button class="modal-close" id="btnCloseManualContactModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.84rem; color: #475569; margin-bottom: 0.75rem;">
+                    Ketik atau tempel satu / banyak nomor WhatsApp penerima (1 baris per penerima, bisa sertakan nama):
+                </p>
+                <div class="form-group">
+                    <textarea id="inputManualContactsText" class="text-area-input" rows="7" placeholder="Contoh format:
+081234567890, Dr. Budi Santoso
+628198765432, Ibu Siti Rahma, MBA
+085612345678
++628131234567, Pak Hendra" style="width: 100%; padding: 0.6rem 0.8rem; font-family: monospace; font-size: 0.84rem; border: 1px solid var(--border-color); border-radius: 8px; resize: vertical;"></textarea>
+                </div>
+                <small style="color: #64748b; font-size: 0.76rem; display: block; margin-top: 0.4rem;">
+                    💡 Format nomor yang didukung: <code>08...</code>, <code>628...</code>, atau <code>+628...</code>. Nama dapat dipisahkan tanda koma (<code>,</code>).
+                </small>
+            </div>
+            <div class="modal-footer space-between">
+                <button type="button" class="btn btn-secondary" id="btnCancelManualContact">Batal</button>
+                <button type="button" class="btn btn-primary" id="btnAddManualContactsSubmit">
+                    <span>➕ Masukkan ke Daftar Penerima</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Phone Modal -->
+    <div id="phoneModal" class="modal-backdrop" style="display: none;">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Update Nomor WhatsApp Dosen</h3>
+                <button class="modal-close" id="btnClosePhoneModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Dosen: <strong id="modalLecturerName"></strong></p>
+                <div class="form-control">
+                    <label for="inputModalPhone">Nomor WhatsApp (Contoh: 628123456789 atau 08123456789):</label>
+                    <input type="text" id="inputModalPhone" class="text-input" placeholder="62812...">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btnCancelPhone">Batal</button>
+                <button class="btn btn-primary" id="btnSavePhone">Simpan Nomor</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PIN Verification Prompt Modal -->
+    <div id="pinVerifyModal" class="modal-backdrop" style="display: none;">
+        <div class="modal-box pin-modal-box">
+            <div class="modal-header">
+                <div class="modal-title-with-badge">
+                    <h3 id="pinModalTitle">🔐 Masukkan PIN Akses Prodi</h3>
+                    <span class="badge-subtitle" id="pinModalSubtitle">Khusus PIC Program Studi untuk membuka jadwal & draf pesan</span>
+                </div>
+                <button class="modal-close" id="btnClosePinVerifyModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="pin-badge-display">
+                    <span class="pin-prodi-icon" id="pinProdiIcon">🎓</span>
+                    <strong class="pin-prodi-name" id="pinProdiName">MBA Jakarta</strong>
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label for="inputVerifyPin" style="font-weight: 600;">Masukkan 4 Digit PIN:</label>
+                    <input type="password" id="inputVerifyPin" class="text-input pin-input" maxlength="8" placeholder="••••" autofocus autocomplete="off">
+                    <div id="pinErrorMessage" class="pin-error-text" style="display: none;">❌ PIN yang Anda masukkan salah.</div>
+                    <small class="help-text">Default PIN awal: <code>1234</code>. PIN dapat diubah setelah login.</small>
+                </div>
+            </div>
+            <div class="modal-footer space-between">
+                <button type="button" class="btn btn-secondary" id="btnCancelPinVerify">Batal</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitPinVerify">
+                    <span>🔓 Buka Akses Prodi</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change PIN Modal -->
+    <div id="pinChangeModal" class="modal-backdrop" style="display: none;">
+        <div class="modal-box pin-modal-box">
+            <div class="modal-header">
+                <div class="modal-title-with-badge">
+                    <h3 id="pinChangeModalTitle">🔑 Ganti PIN Akses Prodi</h3>
+                    <span class="badge-subtitle" id="pinChangeModalSubtitle">PIN baru akan disimpan secara online untuk akses PIC berikutnya</span>
+                </div>
+                <button class="modal-close" id="btnClosePinChangeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="pin-badge-display">
+                    <span class="pin-prodi-icon" id="pinChangeProdiIcon">🎓</span>
+                    <strong class="pin-prodi-name" id="pinChangeProdiName">MBA Jakarta</strong>
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label for="inputOldPin" style="font-weight: 600;">PIN Saat Ini (Lama):</label>
+                    <input type="password" id="inputOldPin" class="text-input pin-input" maxlength="8" placeholder="Masukkan PIN saat ini...">
+                </div>
+                <div class="form-group" style="margin-top: 0.75rem;">
+                    <label for="inputNewPin" style="font-weight: 600;">PIN Baru (Min. 4 Karakter):</label>
+                    <input type="password" id="inputNewPin" class="text-input pin-input" maxlength="8" placeholder="Masukkan PIN baru...">
+                </div>
+                <div class="form-group" style="margin-top: 0.75rem;">
+                    <label for="inputConfirmPin" style="font-weight: 600;">Konfirmasi PIN Baru:</label>
+                    <input type="password" id="inputConfirmPin" class="text-input pin-input" maxlength="8" placeholder="Ketik ulang PIN baru...">
+                    <div id="pinChangeErrorMessage" class="pin-error-text" style="display: none;"></div>
+                </div>
+            </div>
+            <div class="modal-footer space-between">
+                <button type="button" class="btn btn-secondary" id="btnCancelPinChange">Batal</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitPinChange">
+                    <span>💾 Simpan PIN Baru</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast" style="display: none;"></div>
+
+    <script src="static/app.js?v=3.1"></script>
+</body>
+</html>
