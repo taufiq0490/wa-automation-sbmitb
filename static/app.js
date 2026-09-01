@@ -405,10 +405,21 @@ function setupEventListeners() {
         });
     }
 
+    // Clickable WhatsApp Status Badge in Header
+    const waBadge = document.getElementById('waStatusBadge');
+    if (waBadge) {
+        waBadge.style.cursor = 'pointer';
+        waBadge.addEventListener('click', () => {
+            window.open('https://web.whatsapp.com', '_blank');
+            showToast('🌐 Membuka WhatsApp Web di tab browser baru...');
+        });
+    }
+
     // Connect / Scan QR WhatsApp Button
     const btnConnect = document.getElementById('btnConnectWa');
     if (btnConnect) {
-        btnConnect.addEventListener('click', async () => {
+        btnConnect.addEventListener('click', async (e) => {
+            e.stopPropagation();
             // First, try to connect via local backend
             try {
                 const resp = await fetch('/api/wa/connect', { method: 'POST' });
@@ -417,8 +428,9 @@ function setupEventListeners() {
                 updateWaStatusUI(data);
                 showToast('🔄 Membuka WhatsApp Web, silakan scan QR code...');
             } catch (err) {
-                // No local backend — show WA Web guide
-                openWaWebGuideModal();
+                // No local backend — open WA Web directly
+                window.open('https://web.whatsapp.com', '_blank');
+                showToast('🌐 Membuka WhatsApp Web di tab browser baru...');
             }
         });
     }
@@ -999,11 +1011,13 @@ function attachCardEvents(card, lec) {
             return;
         }
 
-        const msg = bubbleElem.textContent;
+        const msg = bubbleElem ? bubbleElem.textContent : (lec.whatsapp_message || '');
+        const cleanPhone = String(lec.phone).replace(/[^\d]/g, '');
         const encodedMsg = encodeURIComponent(msg);
-        const waUrl = `https://web.whatsapp.com/send?phone=${lec.phone}&text=${encodedMsg}`;
+        const waUrl = `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodedMsg}`;
         
         window.open(waUrl, 'whatsapp_tab');
+        showToast(`🚀 Membuka WhatsApp Web untuk ${lec.lecturer}...`);
 
         if (!sentCheckbox.checked) {
             sentCheckbox.checked = true;
@@ -1011,7 +1025,7 @@ function attachCardEvents(card, lec) {
         }
     });
 
-    // Auto-Send Direct Button (Background Sending)
+    // Auto-Send Direct Button (Background Sending or 1-Click WA Web Fallback)
     card.querySelector('.btn-auto-send').addEventListener('click', async () => {
         await sendSingleLecturerAuto(lec, card, bubbleElem, sentCheckbox);
     });
@@ -1037,6 +1051,7 @@ async function sendSingleLecturerAuto(lec, card, bubbleElem, sentCheckbox) {
     const endDate = document.getElementById('endDate').value;
     const message = bubbleElem ? bubbleElem.textContent : (lec.whatsapp_message || '');
 
+    let serverSent = false;
     try {
         const resp = await fetch('/api/wa/send', {
             method: 'POST',
@@ -1050,37 +1065,42 @@ async function sendSingleLecturerAuto(lec, card, bubbleElem, sentCheckbox) {
             })
         });
 
-        const data = await resp.json();
-
-        if (resp.ok && data.status === 'success') {
-            showToast(`✅ Pesan untuk ${lec.lecturer} berhasil terkirim langsung!`);
-            lec.is_sent = true;
-            if (card) {
-                card.classList.add('is-sent');
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.status === 'success') {
+                serverSent = true;
+                showToast(`✅ Pesan untuk ${lec.lecturer} berhasil terkirim langsung!`);
             }
-            if (sentCheckbox) {
-                sentCheckbox.checked = true;
-                const labelSpan = card ? card.querySelector('.sent-toggle-label span') : null;
-                if (labelSpan) labelSpan.textContent = '✅ Sudah Terkirim';
-            }
-            updateMetrics({ count: currentLecturers.length, total_sessions: document.getElementById('statTotalSessions').textContent });
-            return true;
-        } else {
-            showToast(`❌ Gagal (${lec.lecturer}): ${data.message || 'Terjadi kesalahan saat kirim'}`);
-            if (data.message && data.message.includes('belum login')) {
-                document.getElementById('btnConnectWa').style.display = 'inline-block';
-            }
-            return false;
         }
     } catch (err) {
-        showToast(`❌ Error koneksi (${lec.lecturer}): ${err.message}`);
-        return false;
-    } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-        }
+        // Backend not available (Netlify mode)
     }
+
+    if (!serverSent) {
+        // Fallback for Netlify / standalone: open WA Web with 1-click
+        const cleanPhone = String(lec.phone).replace(/[^\d]/g, '');
+        const encodedMsg = encodeURIComponent(message);
+        const waUrl = `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodedMsg}`;
+        window.open(waUrl, 'whatsapp_tab');
+        showToast(`🚀 Membuka WhatsApp Web untuk ${lec.lecturer}...`);
+    }
+
+    lec.is_sent = true;
+    if (card) {
+        card.classList.add('is-sent');
+    }
+    if (sentCheckbox) {
+        sentCheckbox.checked = true;
+        const labelSpan = card ? card.querySelector('.sent-toggle-label span') : null;
+        if (labelSpan) labelSpan.textContent = '✅ Sudah Terkirim';
+    }
+    updateMetrics({ count: currentLecturers.length, total_sessions: document.getElementById('statTotalSessions').textContent });
+
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+    return true;
 }
 
 async function startBatchAutoSend() {
@@ -2601,29 +2621,43 @@ function parseCsvToRows(csvText) {
     return result;
 }
 
+function normalizeDosenName(name) {
+    if (!name) return '';
+    let cleaned = String(name).replace(/\b(prof|dr|rer|pol|ir|st|se|si|mm|mba|msae|meng|phd|mab|mppar|stp|mt|msi|bhsc|dosen|pengajar|kontrak|praktisi|asisten|ahli|lektor|kepala|apt|drg|h|hj|bpk|bapak|pak|ibu|bu|mas|mbak|mr|mrs|ms|s\.kom|s\.e|s\.t|s\.si|m\.m|m\.ba|m\.sc|m\.t|m\.ab|ph\.d|dr\.)\b\.?/gi, '');
+    cleaned = cleaned.replace(/[^\w\s]/g, ' ');
+    return cleaned.trim().toLowerCase().split(/\s+/).join(' ');
+}
+
 async function loadClientSideDosenDatabase() {
     if (clientSideDosenDb) return clientSideDosenDb;
     try {
-        const csv = await fetchSheetCsvText('Data Base Dosen');
+        const url = `https://docs.google.com/spreadsheets/d/${GSHEET_DOC_ID}/gviz/tq?tqx=out:csv&gid=778468163`;
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const csv = await resp.text();
         const rows = parseCsvToRows(csv);
         const lookup = {};
         rows.forEach(r => {
-            const name = (r['NAMA'] || r['Nama'] || r['Lecturer'] || '').trim();
-            let phone = (r['No. Handphone'] || r['No Handphone'] || r['Phone'] || r['WA'] || '').trim();
+            const name1 = (r['Nama Dosen'] || r['NAMA'] || r['Nama'] || r['Lecturer'] || '').trim();
+            const name2 = (r['Nama Dosen Tanpa Gelar'] || '').trim();
+            let phone = (r['No. Hand Phone'] || r['No Hand Phone'] || r['No. Handphone'] || r['No Handphone'] || r['Phone'] || r['WA'] || '').trim();
             if (phone) {
                 phone = phone.replace(/[^\d+]/g, '');
                 if (phone.startsWith('08')) phone = '628' + phone.substring(2);
                 else if (phone.startsWith('+62')) phone = '62' + phone.substring(3);
                 else if (phone.startsWith('+')) phone = phone.substring(1);
             }
-            if (name) {
-                lookup[name.toLowerCase()] = {
-                    name: name,
-                    phone: phone,
-                    domicile: (r['Domisili'] || r['Kota'] || '').trim(),
-                    status: (r['Status'] || '').trim()
-                };
-            }
+            const domicile = (r['Domicile'] || r['Domisili'] || r['Kota'] || '').trim();
+            const status = (r['Status'] || '').trim();
+
+            [name1, name2].forEach(n => {
+                if (n) {
+                    const info = { name: n, phone: phone, domicile: domicile, status: status };
+                    lookup[n.toLowerCase()] = info;
+                    const norm = normalizeDosenName(n);
+                    if (norm) lookup[norm] = info;
+                }
+            });
         });
         clientSideDosenDb = lookup;
         return lookup;
@@ -2685,6 +2719,12 @@ async function loadClientSideScheduleRows(prodi) {
     const rows = parseCsvToRows(csvText);
     const dosenLookup = await loadClientSideDosenDatabase();
     
+    // Load local phone overrides
+    let phoneOverrides = {};
+    try {
+        phoneOverrides = JSON.parse(localStorage.getItem('phone_overrides') || '{}');
+    } catch(e) {}
+    
     const schedules = [];
     rows.forEach((r, idx) => {
         const lecturerRaw = (r['Lecturer'] || r['Dosen'] || r['Nama Dosen'] || r['NAMA'] || r['Nama'] || '').trim();
@@ -2704,8 +2744,9 @@ async function loadClientSideScheduleRows(prodi) {
         const examType = (r['Exam Type'] || r['Jenis Ujian'] || '').trim();
         const isExam = examType !== '' || /exam|uas|uts|ujian/i.test(course) || /exam|uas|uts|ujian/i.test(remarks);
         
-        const contact = dosenLookup[lecturerRaw.toLowerCase()] || {};
-        const phone = contact.phone || '';
+        const normName = normalizeDosenName(lecturerRaw);
+        const contact = dosenLookup[lecturerRaw.toLowerCase()] || dosenLookup[normName] || {};
+        let phone = phoneOverrides[lecturerRaw] || contact.phone || '';
         const domicile = contact.domicile || '';
         const status = contact.status || '';
 
