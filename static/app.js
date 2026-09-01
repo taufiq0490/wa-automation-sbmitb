@@ -469,6 +469,13 @@ function setupEventListeners() {
     const tabTplEn = document.getElementById('tplTabEn');
     if (tabTplEn) tabTplEn.addEventListener('click', () => switchTemplateLang('en'));
 
+    const selTplProdi = document.getElementById('selectTemplateProdi');
+    if (selTplProdi) {
+        selTplProdi.addEventListener('change', (e) => {
+            switchTemplateProdi(e.target.value);
+        });
+    }
+
     // Real-time live preview update on input typing
     const tplInputIds = [
         'inputTplIntro', 'inputTplClosing', 'inputLblProgram', 'inputLblCourse',
@@ -2322,63 +2329,67 @@ function setupBroadcastEventListeners() {
 }
 
 // ==========================================
-// MASTER TEMPLATE EDITOR LOGIC
+// MASTER TEMPLATE EDITOR LOGIC (PER-PRODI)
 // ==========================================
 
-// ─── Built-in default templates (used when backend /api/templates is unavailable) ───
-const CLIENT_DEFAULT_TEMPLATES = {
-    id: {
-        intro: 'Yth. Bapak/Ibu *{nama_dosen}*,\n\nDengan hormat, kami sampaikan jadwal mengajar untuk minggu ini:\n\n',
-        closing: '\nDemikian informasi jadwal mengajar ini kami sampaikan. Atas perhatian dan kesediaan Bapak/Ibu, kami mengucapkan terima kasih.\n\nHormat kami,\n*Tim Akademik SBM ITB*',
-        lbl_program: 'Program',
-        lbl_course: 'Mata Kuliah',
-        lbl_date: 'Hari/Tanggal',
-        lbl_time: 'Waktu',
-        lbl_room: 'Ruangan',
-        lbl_guest: 'Guest Speaker',
-        lbl_mentor: 'Mentor',
-        lbl_remarks: 'Catatan',
-        exam_ask_all: 'Mohon konfirmasi kehadiran Anda paling lambat H-1 sebelum jadwal dimulai.'
-    },
-    en: {
-        intro: 'Dear *{nama_dosen}*,\n\nWe would like to inform you of your teaching schedule for this week:\n\n',
-        closing: '\nThank you for your attention and continued dedication.\n\nBest regards,\n*SBM ITB Academic Team*',
-        lbl_program: 'Program',
-        lbl_course: 'Course',
-        lbl_date: 'Day/Date',
-        lbl_time: 'Time',
-        lbl_room: 'Room',
-        lbl_guest: 'Guest Speaker',
-        lbl_mentor: 'Mentor',
-        lbl_remarks: 'Remarks',
-        exam_ask_all: 'Please confirm your attendance at least 1 day before the scheduled class.'
+let editingTemplateProdi = 'MBAJ';
+
+function getDefaultTemplateForProdi(prodiCode) {
+    const cfg = PRODI_DATA[prodiCode] || PRODI_DATA['MBAJ'];
+    const prodiName = cfg.name || 'SBM ITB';
+    return {
+        id: {
+            intro: `Yth. Bapak/Ibu *{nama_dosen}*,\n\nDengan hormat, kami sampaikan jadwal perkuliahan di *${prodiName}* sebagai berikut:\n\n`,
+            closing: `\nDemikian informasi jadwal perkuliahan ini kami sampaikan. Atas perhatian dan kesediaan Bapak/Ibu, kami mengucapkan terima kasih.\n\nHormat kami,\n*Tim Akademik ${prodiName}*`,
+            label_program: 'Program',
+            label_course: 'Mata Kuliah',
+            label_date: 'Hari, Tanggal',
+            label_time: 'Waktu',
+            label_room: 'Ruangan',
+            label_guest_lecturer: 'Dosen Tamu',
+            label_mentor: 'Mentor',
+            label_remarks: 'Catatan',
+            exam_ask_all: 'Mohon konfirmasi apakah ujian akan dilaksanakan secara Offline (di kampus), Online, atau Take-Home?'
+        },
+        en: {
+            intro: `Dear *{nama_dosen}*,\n\nWe would like to inform you of the lecture schedule at *${prodiName}* as follows:\n\n`,
+            closing: `\nThank you for your attention and dedication.\n\nBest regards,\n*Academic Operations Team - ${prodiName}*`,
+            label_program: 'Program',
+            label_course: 'Course',
+            label_date: 'Day, Date',
+            label_time: 'Time',
+            label_room: 'Room',
+            label_guest_lecturer: 'Guest Lecturer',
+            label_mentor: 'Mentor',
+            label_remarks: 'Remarks',
+            exam_ask_all: 'Kindly confirm whether the exam will be conducted Offline (On-Campus), Online, or as a Take-Home exam.'
+        }
+    };
+}
+
+function getTemplatesForProdi(prodiCode) {
+    prodiCode = prodiCode || currentProdi || 'MBAJ';
+    const saved = localStorage.getItem('master_templates_' + prodiCode);
+    if (saved) {
+        try {
+            return JSON.parse(saved);
+        } catch(e) {}
     }
-};
+    return getDefaultTemplateForProdi(prodiCode);
+}
+
+let currentProdiTemplates = {};
 
 async function openTemplateModal() {
-    try {
-        const resp = await fetch('/api/templates');
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
-        currentTemplates = data.templates || { id: {}, en: {} };
-        defaultTemplates = data.defaults || CLIENT_DEFAULT_TEMPLATES;
-    } catch (err) {
-        // Netlify / static mode: use built-in defaults, load from localStorage if saved
-        console.warn('Backend /api/templates unavailable, using client-side defaults.');
-        const savedRaw = localStorage.getItem('master_templates_local');
-        if (savedRaw) {
-            try {
-                currentTemplates = JSON.parse(savedRaw);
-            } catch {
-                currentTemplates = JSON.parse(JSON.stringify(CLIENT_DEFAULT_TEMPLATES));
-            }
-        } else {
-            currentTemplates = JSON.parse(JSON.stringify(CLIENT_DEFAULT_TEMPLATES));
-        }
-        defaultTemplates = CLIENT_DEFAULT_TEMPLATES;
+    editingTemplateProdi = currentProdi || 'MBAJ';
+    const selectProdi = document.getElementById('selectTemplateProdi');
+    if (selectProdi) {
+        selectProdi.value = editingTemplateProdi;
     }
 
+    currentProdiTemplates = getTemplatesForProdi(editingTemplateProdi);
     activeTemplateLang = currentGlobalLang || 'id';
+
     updateTemplateTabUI();
     populateTemplateFormFields(activeTemplateLang);
     updateTemplatePreview();
@@ -2390,12 +2401,21 @@ function closeTemplateModal() {
     document.getElementById('templateModal').style.display = 'none';
 }
 
+function switchTemplateProdi(newProdi) {
+    if (!newProdi || newProdi === editingTemplateProdi) return;
+    collectCurrentFormIntoMemory();
+    localStorage.setItem('master_templates_' + editingTemplateProdi, JSON.stringify(currentProdiTemplates));
+
+    editingTemplateProdi = newProdi;
+    currentProdiTemplates = getTemplatesForProdi(editingTemplateProdi);
+
+    populateTemplateFormFields(activeTemplateLang);
+    updateTemplatePreview();
+}
+
 function switchTemplateLang(targetLang) {
     if (activeTemplateLang === targetLang) return;
-    
-    // Save current form values to memory
     collectCurrentFormIntoMemory();
-    
     activeTemplateLang = targetLang;
     updateTemplateTabUI();
     populateTemplateFormFields(targetLang);
@@ -2410,10 +2430,10 @@ function updateTemplateTabUI() {
 }
 
 function collectCurrentFormIntoMemory() {
-    if (!currentTemplates[activeTemplateLang]) {
-        currentTemplates[activeTemplateLang] = {};
+    if (!currentProdiTemplates[activeTemplateLang]) {
+        currentProdiTemplates[activeTemplateLang] = {};
     }
-    const cur = currentTemplates[activeTemplateLang];
+    const cur = currentProdiTemplates[activeTemplateLang];
     
     cur.intro = document.getElementById('inputTplIntro').value;
     cur.closing = document.getElementById('inputTplClosing').value;
@@ -2429,8 +2449,8 @@ function collectCurrentFormIntoMemory() {
 }
 
 function populateTemplateFormFields(lang) {
-    const tpl = (currentTemplates && currentTemplates[lang]) ? currentTemplates[lang] : {};
-    const dflt = (defaultTemplates && defaultTemplates[lang]) ? defaultTemplates[lang] : {};
+    const dflt = getDefaultTemplateForProdi(editingTemplateProdi)[lang] || {};
+    const tpl = (currentProdiTemplates && currentProdiTemplates[lang]) ? currentProdiTemplates[lang] : dflt;
 
     document.getElementById('inputTplIntro').value = (tpl.intro !== undefined) ? tpl.intro : (dflt.intro || '');
     document.getElementById('inputTplClosing').value = (tpl.closing !== undefined) ? tpl.closing : (dflt.closing || '');
@@ -2447,7 +2467,8 @@ function populateTemplateFormFields(lang) {
 
 function updateTemplatePreview() {
     const isId = (activeTemplateLang === 'id');
-    const introVal = document.getElementById('inputTplIntro').value.trim();
+    const prodiCfg = PRODI_DATA[editingTemplateProdi] || PRODI_DATA['MBAJ'];
+    let introVal = document.getElementById('inputTplIntro').value.trim();
     const closingVal = document.getElementById('inputTplClosing').value.trim();
     const lblProg = document.getElementById('inputLblProgram').value.trim() || 'Program';
     const lblCourse = document.getElementById('inputLblCourse').value.trim() || (isId ? 'Mata Kuliah' : 'Course');
@@ -2459,30 +2480,28 @@ function updateTemplatePreview() {
     const examQ = document.getElementById('inputTplExamAskAll').value.trim();
 
     let lines = [];
-    if (introVal) lines.push(introVal + "\n");
+    if (introVal) {
+        introVal = introVal.replace('{nama_dosen}', 'Dr. Ir. Budi Santoso, M.B.A.');
+        lines.push(introVal + "\n");
+    }
     
     // Sample schedule block
-    const sampleProg = isId ? "Eksekutif (EMBA-68)" : "Executive (EMBA-68)";
+    const sampleProg = isId ? `Reguler (${editingTemplateProdi})` : `Regular (${editingTemplateProdi})`;
     const sampleCourse = "Strategic Management";
     const sampleDate = isId ? "Sabtu, 5 September 2026" : "Saturday, September 5, 2026";
     const sampleTime = isId ? "09.00 - 12.00 WIB (1 Sesi) + UTS" : "09.00 - 12.00 WIB (1 Session) + MID EXAM";
-    const sampleRoom = isId ? "R. 301 Kampus Jakarta" : "Room 301 Jakarta Campus";
+    const sampleRoom = prodiCfg.defaultLocation || "SBM ITB";
     
     lines.push(`${lblProg} : ${sampleProg}`);
     lines.push(`${lblCourse} : ${sampleCourse}`);
     lines.push(`${lblDate} : ${sampleDate}`);
     lines.push(`${lblTime} : ${sampleTime}`);
     lines.push(`${lblRoom} : ${sampleRoom}`);
-    lines.push(`${lblGuest} : Ir. Budi Santoso, MBA`);
+    lines.push(`${lblGuest} : Dr. Hendra Gunawan`);
     lines.push(`${lblMentor} : Kevin Sugiarto`);
 
     if (examQ) {
-        const examIntro = isId ? `\n\nTerkait sesi ujian mendatang, ${examQ}` : `\n\nRegarding the upcoming examination session, ${examQ}`;
-        lines.push(examIntro);
-    } else {
-        const defaultQ = isId ? "mohon konfirmasi apakah ujian akan dilaksanakan secara Offline (di kampus), Online, atau Take-Home?" : "kindly confirm whether the exam will be conducted Offline (On-Campus), Online, or as a Take-Home exam?";
-        const examIntro = isId ? `\n\nTerkait sesi ujian mendatang, ${defaultQ}` : `\n\nRegarding the upcoming examination session, ${defaultQ}`;
-        lines.push(examIntro);
+        lines.push(`\n${examQ}`);
     }
 
     if (closingVal) {
@@ -2506,29 +2525,11 @@ async function saveTemplateForm() {
         <span>Menyimpan...</span>
     `;
 
-    let savedToServer = false;
-    try {
-        const resp = await fetch('/api/templates', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(currentTemplates)
-        });
-        if (resp.ok) {
-            const data = await resp.json();
-            if (data.status === 'success') savedToServer = true;
-        }
-    } catch (err) {
-        console.warn('Backend /api/templates unavailable, saving to localStorage.');
-    }
+    // Save to localStorage specifically for this Prodi
+    localStorage.setItem('master_templates_' + editingTemplateProdi, JSON.stringify(currentProdiTemplates));
 
-    // Always save to localStorage as local backup (works on Netlify)
-    localStorage.setItem('master_templates_local', JSON.stringify(currentTemplates));
-
-    if (savedToServer) {
-        showToast('✅ Master Template berhasil disimpan ke server!');
-    } else {
-        showToast('✅ Master Template disimpan secara lokal di browser ini.');
-    }
+    const prodiName = PRODI_DATA[editingTemplateProdi]?.name || editingTemplateProdi;
+    showToast(`✅ Master Template untuk ${prodiName} berhasil disimpan!`);
 
     closeTemplateModal();
     fetchSchedules();
@@ -2538,32 +2539,17 @@ async function saveTemplateForm() {
 }
 
 async function resetTemplateForm() {
-    if (!confirm('Apakah Anda yakin ingin mengembalikan format master template ke format standar SBM ITB?')) {
+    const prodiName = PRODI_DATA[editingTemplateProdi]?.name || editingTemplateProdi;
+    if (!confirm(`Apakah Anda yakin ingin mengembalikan master template untuk ${prodiName} ke format bawaan standar?`)) {
         return;
     }
 
-    let resetted = false;
-    try {
-        const resp = await fetch('/api/templates/reset', { method: 'POST' });
-        if (resp.ok) {
-            const data = await resp.json();
-            if (data.status === 'success') {
-                currentTemplates = data.templates || JSON.parse(JSON.stringify(CLIENT_DEFAULT_TEMPLATES));
-                resetted = true;
-            }
-        }
-    } catch (err) {
-        console.warn('Backend unavailable, resetting to built-in defaults.');
-    }
-
-    if (!resetted) {
-        currentTemplates = JSON.parse(JSON.stringify(CLIENT_DEFAULT_TEMPLATES));
-        localStorage.removeItem('master_templates_local');
-    }
+    localStorage.removeItem('master_templates_' + editingTemplateProdi);
+    currentProdiTemplates = getDefaultTemplateForProdi(editingTemplateProdi);
 
     populateTemplateFormFields(activeTemplateLang);
     updateTemplatePreview();
-    showToast('🔄 Master Template berhasil di-reset ke format standar SBM ITB.');
+    showToast(`🔄 Master Template untuk ${prodiName} di-reset ke format standar.`);
     fetchSchedules();
 }
 /* =========================================================================
@@ -2818,42 +2804,58 @@ function calculateClientSideWeeks(schedules) {
 }
 
 function buildClientSideWhatsAppMessage(lec, prodi, lang = 'id') {
+    prodi = prodi || currentProdi || 'MBAJ';
     const cfg = PRODI_DATA[prodi] || PRODI_DATA['MBAJ'];
-    const prodiGreeting = cfg.name;
     const isEnglish = (lang === 'en');
-    
-    let intro = isEnglish 
-        ? `Good morning. We would like to confirm and remind you of the upcoming lecture schedule at ${prodiGreeting} as follows:\n`
-        : `Selamat pagi. Izin konfirmasi dan reminder untuk jadwal perkuliahan di ${prodiGreeting} mendatang sebagai berikut :\n`;
-        
+    const tpls = getTemplatesForProdi(prodi);
+    const dflt = getDefaultTemplateForProdi(prodi)[lang];
+    const tpl = (tpls && tpls[lang]) ? tpls[lang] : dflt;
+
+    let intro = tpl.intro || dflt.intro || (isEnglish ? 'Dear *{nama_dosen}*,\n\n' : 'Yth. Bapak/Ibu *{nama_dosen}*,\n\n');
+    intro = intro.replace('{nama_dosen}', lec.lecturer);
+
     let lines = [intro];
-    
+
+    const lblProg = tpl.label_program || dflt.label_program || 'Program';
+    const lblCourse = tpl.label_course || dflt.label_course || (isEnglish ? 'Course' : 'Mata Kuliah');
+    const lblDate = tpl.label_date || dflt.label_date || (isEnglish ? 'Day, Date' : 'Hari, Tanggal');
+    const lblTime = tpl.label_time || dflt.label_time || (isEnglish ? 'Time' : 'Waktu');
+    const lblRoom = tpl.label_room || dflt.label_room || (isEnglish ? 'Room' : 'Ruangan');
+    const lblGuest = tpl.label_guest_lecturer || dflt.label_guest_lecturer || (isEnglish ? 'Guest Lecturer' : 'Dosen Tamu');
+    const lblMentor = tpl.label_mentor || dflt.label_mentor || 'Mentor';
+    const lblRemarks = tpl.label_remarks || dflt.label_remarks || (isEnglish ? 'Remarks' : 'Catatan');
+
     lec.sessions.forEach((s, idx) => {
         const prefix = lec.sessions.length > 1 ? `*Jadwal ${idx + 1}:*\n` : '';
         if (prefix) lines.push(prefix);
-        
-        lines.push(`${isEnglish ? 'Program' : 'Program'} : ${s.program}`);
-        lines.push(`${isEnglish ? 'Course' : 'Mata Kuliah'} : ${s.course}`);
-        lines.push(`${isEnglish ? 'Day, Date' : 'Hari, Tanggal'} : ${s.formatted_date}`);
-        lines.push(`${isEnglish ? 'Time' : 'Waktu'} : ${s.time} WIB`);
-        lines.push(`${isEnglish ? 'Room' : 'Ruangan'} : ${s.room}`);
-        
+
+        lines.push(`${lblProg} : ${s.program || cfg.name}`);
+        lines.push(`${lblCourse} : ${s.course}`);
+        lines.push(`${lblDate} : ${s.formatted_date}`);
+        lines.push(`${lblTime} : ${s.time} WIB`);
+        lines.push(`${lblRoom} : ${s.room || cfg.defaultLocation}`);
+
         if (s.guest_lecturer) {
-            lines.push(`${isEnglish ? 'Guest Lecturer' : 'Dosen Tamu'} : ${s.guest_lecturer}`);
+            lines.push(`${lblGuest} : ${s.guest_lecturer}`);
         }
         if (s.mentors) {
-            lines.push(`Mentor : ${s.mentors}`);
+            lines.push(`${lblMentor} : ${s.mentors}`);
         }
         if (s.remarks) {
-            lines.push(`${isEnglish ? 'Remarks' : 'Catatan'} : ${s.remarks}`);
+            lines.push(`${lblRemarks} : ${s.remarks}`);
         }
-        if (s.is_exam) {
-            lines.push(`\nMohon konfirmasi apakah ujian akan dilaksanakan secara offline di kampus, online, atau take-home exam?`);
+        if (s.is_exam && tpl.exam_ask_all) {
+            lines.push(`\n${tpl.exam_ask_all}`);
         }
         lines.push('');
     });
-    
-    lines.push(isEnglish ? `Thank you for your attention.` : `Demikian kami informasikan, Terima kasih.`);
+
+    if (tpl.closing) {
+        lines.push(tpl.closing.trim());
+    } else if (dflt.closing) {
+        lines.push(dflt.closing.trim());
+    }
+
     return lines.join('\n');
 }
 

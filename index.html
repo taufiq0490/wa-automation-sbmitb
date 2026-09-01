@@ -731,14 +731,29 @@
                 <button class="modal-close" id="btnCloseTemplateModal">&times;</button>
             </div>
             
-            <!-- Template Language Tabs -->
-            <div class="template-lang-tabs">
-                <button type="button" class="tpl-tab-btn active" data-tpl-lang="id" id="tplTabId">
-                    <span>🇮🇩 Bahasa Indonesia</span>
-                </button>
-                <button type="button" class="tpl-tab-btn" data-tpl-lang="en" id="tplTabEn">
-                    <span>🇬🇧 English</span>
-                </button>
+            <!-- Template Prodi Selector & Language Tabs Bar -->
+            <div style="margin: 0.75rem 1.5rem 0.5rem; background: #f8fafc; border: 1px solid var(--border-color); padding: 0.6rem 1rem; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label for="selectTemplateProdi" style="margin: 0; font-size: 0.88rem; font-weight: 700; color: var(--primary-blue); white-space: nowrap;">🎓 Program Studi:</label>
+                    <select id="selectTemplateProdi" class="select-input small" style="min-width: 240px; font-weight: 700; color: var(--primary-blue); background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.4rem 0.75rem;">
+                        <option value="MBAJ">🎓 MBA Kampus Jakarta</option>
+                        <option value="MBAB">🏛️ MBA Kampus Bandung</option>
+                        <option value="SW">🚀 S1 Kewirausahaan</option>
+                        <option value="SM">💼 S1 Manajemen</option>
+                        <option value="MSM">🔬 MSM (S2)</option>
+                        <option value="DSM">📜 DSM (S3)</option>
+                    </select>
+                </div>
+                
+                <!-- Template Language Tabs -->
+                <div class="template-lang-tabs" style="margin: 0;">
+                    <button type="button" class="tpl-tab-btn active" data-tpl-lang="id" id="tplTabId">
+                        <span>🇮🇩 Bahasa Indonesia</span>
+                    </button>
+                    <button type="button" class="tpl-tab-btn" data-tpl-lang="en" id="tplTabEn">
+                        <span>🇬🇧 English</span>
+                    </button>
+                </div>
             </div>
 
             <div class="modal-body modal-grid-layout">
@@ -979,6 +994,6 @@
     <!-- Toast Notification -->
     <div id="toast" class="toast" style="display: none;"></div>
 
-    <script src="static/app.js?v=3.3"></script>
+    <script src="static/app.js?v=3.4"></script>
 </body>
 </html>
