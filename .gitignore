@@ -1,0 +1,23 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# WhatsApp Browser Profile (Session)
+wa_browser_profile/
+
+# Temporary / Uploads
+uploads/
+*.log
+scratch/
+scratch*
+
+# System
+.DS_Store
+Thumbs.db
