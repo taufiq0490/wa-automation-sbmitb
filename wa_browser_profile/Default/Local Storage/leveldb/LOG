@@ -1,3 +1,6 @@
-2026/09/01-14:13:49.325 5c48 Reusing MANIFEST C:\MBA JKT (Taufiq)\Antigravity\WA Automation\wa_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/09/01-14:13:49.332 5c48 Recovering log #36
-2026/09/01-14:13:49.334 5c48 Reusing old log C:\MBA JKT (Taufiq)\Antigravity\WA Automation\wa_browser_profile\Default\Local Storage\leveldb/000036.log 
+2026/09/01-17:56:37.844 3b80 Reusing MANIFEST C:\MBA JKT (Taufiq)\Antigravity\WA Automation\wa_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/09/01-17:56:37.850 3b80 Recovering log #36
+2026/09/01-17:56:37.853 3b80 Reusing old log C:\MBA JKT (Taufiq)\Antigravity\WA Automation\wa_browser_profile\Default\Local Storage\leveldb/000036.log 
+2026/09/01-17:56:50.664 7510 Level-0 table #40: started
+2026/09/01-17:56:50.669 7510 Level-0 table #40: 23922 bytes OK
+2026/09/01-17:56:50.672 7510 Delete type=0 #36

@@ -216,3 +216,14 @@
 2026-09-01 07:13:49.515: [INFO] BookmarksLoadDropped droppedNodes=0
 2026-09-01 07:13:49.515: [INFO] BookmarksSnapshot Startup total=2 bar=2 other=0 mobile=0 showBar=0 showBarNTP=1
 2026-09-01 08:00:17.712: [INFO] BookmarksSnapshot Shutdown total=2 bar=2 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-09-01 10:56:37.873: [INFO] CurrentProfilePath: C:\MBA JKT (Taufiq)\Antigravity\WA Automation\wa_browser_profile\Default
+2026-09-01 10:56:37.873: [INFO] Profiles total count: 1
+2026-09-01 10:56:37.873: [INFO] Profile: name=Personal path=C:\MBA JKT (Taufiq)\Antigravity\WA Automation\wa_browser_profile\Default lastActive=2026-09-01T07:51:05.415Z
+2026-09-01 10:56:37.873: [INFO] LastUsedProfileDir: C:\MBA JKT (Taufiq)\Antigravity\WA Automation\wa_browser_profile\Default
+2026-09-01 10:56:37.873: [INFO] MostRecentlyActiveProfile: name=Personal path=C:\MBA JKT (Taufiq)\Antigravity\WA Automation\wa_browser_profile\Default lastActive=2026-09-01T07:51:05.415Z
+2026-09-01 10:56:37.873: [INFO] VisibilityChanged: 0
+2026-09-01 10:56:37.968: [INFO] OnDoneLoading sync enabled: 0
+2026-09-01 10:56:37.968: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-09-01 10:56:37.968: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-09-01 10:56:37.968: [INFO] BookmarksSnapshot Startup total=2 bar=2 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-09-01 11:31:09.189: [INFO] BookmarksSnapshot Shutdown total=2 bar=2 other=0 mobile=0 showBar=0 showBarNTP=1

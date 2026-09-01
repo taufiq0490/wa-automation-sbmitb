@@ -447,6 +447,29 @@ function setupEventListeners() {
     const btnSavePhone = document.getElementById('btnSavePhone');
     if (btnSavePhone) btnSavePhone.addEventListener('click', savePhoneModal);
 
+    // Fonnte API Gateway Modal Event Listeners
+    const btnOpenFonnte = document.getElementById('btnOpenFonnteModal');
+    if (btnOpenFonnte) btnOpenFonnte.addEventListener('click', openFonnteModal);
+
+    const btnCloseFonnte = document.getElementById('btnCloseFonnteModal');
+    if (btnCloseFonnte) btnCloseFonnte.addEventListener('click', closeFonnteModal);
+
+    const btnCancelFonnte = document.getElementById('btnCancelFonnte');
+    if (btnCancelFonnte) btnCancelFonnte.addEventListener('click', closeFonnteModal);
+
+    const btnSaveFonnte = document.getElementById('btnSaveFonnteToken');
+    if (btnSaveFonnte) btnSaveFonnte.addEventListener('click', saveFonnteToken);
+
+    const btnTestFonnte = document.getElementById('btnTestFonnteSend');
+    if (btnTestFonnte) btnTestFonnte.addEventListener('click', testFonnteToken);
+
+    const selFonnteProdi = document.getElementById('selectFonnteProdi');
+    if (selFonnteProdi) {
+        selFonnteProdi.addEventListener('change', (e) => {
+            switchFonnteProdi(e.target.value);
+        });
+    }
+
     // Master Template Modal Event Listeners
     const btnOpenTpl = document.getElementById('btnOpenTemplateModal');
     if (btnOpenTpl) btnOpenTpl.addEventListener('click', openTemplateModal);
@@ -1038,6 +1061,145 @@ function attachCardEvents(card, lec) {
     });
 }
 
+/* =========================================================================
+   FONNTE WHATSAPP GATEWAY API INTEGRATION (CLOUD AUTO-SEND)
+   ========================================================================= */
+
+let editingFonnteProdi = 'MBAJ';
+
+function openFonnteModal() {
+    editingFonnteProdi = currentProdi || 'MBAJ';
+    const selProdi = document.getElementById('selectFonnteProdi');
+    if (selProdi) selProdi.value = editingFonnteProdi;
+
+    updateFonnteModalUI();
+    document.getElementById('fonnteModal').style.display = 'flex';
+}
+
+function closeFonnteModal() {
+    document.getElementById('fonnteModal').style.display = 'none';
+}
+
+function switchFonnteProdi(prodiCode) {
+    editingFonnteProdi = prodiCode;
+    updateFonnteModalUI();
+}
+
+function updateFonnteModalUI() {
+    const token = localStorage.getItem('fonnte_token_' + editingFonnteProdi) || '';
+    const inputToken = document.getElementById('inputFonnteToken');
+    const badge = document.getElementById('fonnteTokenStatusBadge');
+    if (inputToken) inputToken.value = token;
+    if (badge) {
+        if (token.trim()) {
+            badge.style.background = '#f0fdf4';
+            badge.style.color = '#15803d';
+            badge.textContent = '✅ Token Terhubung';
+        } else {
+            badge.style.background = '#fef2f2';
+            badge.style.color = '#dc2626';
+            badge.textContent = 'Belum Terhubung';
+        }
+    }
+}
+
+function saveFonnteToken() {
+    const inputToken = document.getElementById('inputFonnteToken');
+    const tokenVal = inputToken ? inputToken.value.trim() : '';
+    localStorage.setItem('fonnte_token_' + editingFonnteProdi, tokenVal);
+
+    const prodiName = PRODI_DATA[editingFonnteProdi]?.name || editingFonnteProdi;
+    if (tokenVal) {
+        showToast(`✅ API Token Fonnte untuk ${prodiName} berhasil disimpan!`);
+    } else {
+        showToast(`ℹ️ Token Fonnte untuk ${prodiName} telah dikosongkan.`);
+    }
+    updateFonnteModalUI();
+    closeFonnteModal();
+}
+
+async function testFonnteToken() {
+    const inputPhone = document.getElementById('inputFonnteTestPhone');
+    const targetPhone = inputPhone ? inputPhone.value.trim() : '';
+    if (!targetPhone) {
+        showToast('⚠️ Silakan masukkan nomor HP tujuan uji coba terlebih dahulu.');
+        return;
+    }
+
+    const inputToken = document.getElementById('inputFonnteToken');
+    const tokenVal = inputToken ? inputToken.value.trim() : '';
+    if (!tokenVal) {
+        showToast('⚠️ Silakan masukkan API Token Fonnte terlebih dahulu.');
+        return;
+    }
+
+    const btnTest = document.getElementById('btnTestFonnteSend');
+    const origText = btnTest.innerHTML;
+    btnTest.disabled = true;
+    btnTest.innerHTML = '<span>⏳ Mengirim tes...</span>';
+
+    try {
+        const testMsg = `Halo! Ini adalah pesan uji coba koneksi WhatsApp Gateway Fonnte dari Sistem Reminder SBM ITB (${editingFonnteProdi}). Status: Berhasil Terhubung! ✅`;
+        
+        const cleanPhone = targetPhone.replace(/[^\d]/g, '');
+        const p = cleanPhone.startsWith('0') ? ('62' + cleanPhone.substring(1)) : cleanPhone;
+
+        const formData = new FormData();
+        formData.append('target', p);
+        formData.append('message', testMsg);
+        formData.append('countryCode', '62');
+
+        const resp = await fetch('https://api.fonnte.com/send', {
+            method: 'POST',
+            headers: { 'Authorization': tokenVal },
+            body: formData
+        });
+
+        const data = await resp.json();
+        if (data.status === true || data.status === 'true' || (data.detail && String(data.detail).toLowerCase().includes('success'))) {
+            showToast(`🎉 Pesan tes berhasil terkirim ke ${targetPhone}! Token Fonnte valid & aktif.`);
+        } else {
+            showToast(`❌ Gagal: ${data.reason || data.detail || 'Token salah atau device offline'}`);
+        }
+    } catch (err) {
+        showToast(`❌ Error koneksi ke Fonnte: ${err.message}`);
+    } finally {
+        btnTest.disabled = false;
+        btnTest.innerHTML = origText;
+    }
+}
+
+async function sendWhatsAppViaFonnte(phone, message, prodi) {
+    prodi = prodi || currentProdi || 'MBAJ';
+    const token = localStorage.getItem('fonnte_token_' + prodi) || '';
+    if (!token || !token.trim()) {
+        throw new Error(`Token Fonnte untuk prodi ${prodi} belum diisi.`);
+    }
+
+    const cleanPhone = String(phone).replace(/[^\d]/g, '');
+    const targetPhone = cleanPhone.startsWith('0') ? ('62' + cleanPhone.substring(1)) : cleanPhone;
+
+    const formData = new FormData();
+    formData.append('target', targetPhone);
+    formData.append('message', message);
+    formData.append('countryCode', '62');
+
+    const resp = await fetch('https://api.fonnte.com/send', {
+        method: 'POST',
+        headers: {
+            'Authorization': token.trim()
+        },
+        body: formData
+    });
+
+    const data = await resp.json();
+    if (data.status === true || data.status === 'true' || (data.detail && String(data.detail).toLowerCase().includes('success'))) {
+        return { success: true, data: data };
+    } else {
+        throw new Error(data.reason || data.detail || 'Gagal mengirim via Fonnte');
+    }
+}
+
 async function sendSingleLecturerAuto(lec, card, bubbleElem, sentCheckbox) {
     if (!lec.phone) {
         showToast('⚠️ Nomor WhatsApp belum ada. Silakan lengkapi nomor terlebih dahulu.');
@@ -1058,33 +1220,50 @@ async function sendSingleLecturerAuto(lec, card, bubbleElem, sentCheckbox) {
     const endDate = document.getElementById('endDate').value;
     const message = bubbleElem ? bubbleElem.textContent : (lec.whatsapp_message || '');
 
-    let serverSent = false;
-    try {
-        const resp = await fetch('/api/wa/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                lecturer: lec.lecturer,
-                phone: lec.phone,
-                message: message,
-                start_date: startDate,
-                end_date: endDate
-            })
-        });
+    let sentViaGateway = false;
 
-        if (resp.ok) {
-            const data = await resp.json();
-            if (data.status === 'success') {
-                serverSent = true;
-                showToast(`✅ Pesan untuk ${lec.lecturer} berhasil terkirim langsung!`);
-            }
+    // 1. Check if Fonnte Token is configured for current prodi (Cloud Auto-Send)
+    const fonnteToken = localStorage.getItem('fonnte_token_' + currentProdi) || '';
+    if (fonnteToken.trim()) {
+        try {
+            await sendWhatsAppViaFonnte(lec.phone, message, currentProdi);
+            sentViaGateway = true;
+            showToast(`✅ Pesan untuk ${lec.lecturer} berhasil terkirim via Fonnte Cloud API!`);
+        } catch (e) {
+            console.warn('Fonnte send error:', e);
+            showToast(`⚠️ Fonnte (${e.message}), beralih ke WhatsApp Web...`);
         }
-    } catch (err) {
-        // Backend not available (Netlify mode)
     }
 
-    if (!serverSent) {
-        // Fallback for Netlify / standalone: open WA Web with 1-click
+    // 2. If not sent via Fonnte, try local Python backend
+    if (!sentViaGateway) {
+        try {
+            const resp = await fetch('/api/wa/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    lecturer: lec.lecturer,
+                    phone: lec.phone,
+                    message: message,
+                    start_date: startDate,
+                    end_date: endDate
+                })
+            });
+
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data.status === 'success') {
+                    sentViaGateway = true;
+                    showToast(`✅ Pesan untuk ${lec.lecturer} berhasil terkirim langsung!`);
+                }
+            }
+        } catch (err) {
+            // Backend not available
+        }
+    }
+
+    // 3. Fallback: Open WhatsApp Web 1-click
+    if (!sentViaGateway) {
         const cleanPhone = String(lec.phone).replace(/[^\d]/g, '');
         const encodedMsg = encodeURIComponent(message);
         const waUrl = `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodedMsg}`;
@@ -1118,7 +1297,11 @@ async function startBatchAutoSend() {
         return;
     }
 
-    if (!confirm(`Kirim pengingat otomatis ke ${pendingList.length} dosen secara berurutan di background?`)) {
+    const fonnteToken = localStorage.getItem('fonnte_token_' + currentProdi) || '';
+    const isFonnteActive = !!fonnteToken.trim();
+    const sendMethodLabel = isFonnteActive ? 'Fonnte Cloud API (Langsung Otomatis Tanpa WA Web)' : 'WhatsApp';
+
+    if (!confirm(`Kirim pengingat otomatis ke ${pendingList.length} dosen menggunakan ${sendMethodLabel}?`)) {
         return;
     }
 
@@ -1156,8 +1339,9 @@ async function startBatchAutoSend() {
         }
 
         if (i < pendingList.length - 1 && isBatchSending) {
-            batchBtn.innerHTML = `<span>⏸️ Jeda 4 detik sebelum pesan berikutnya...</span>`;
-            await new Promise(r => setTimeout(r, 4000));
+            const delaySeconds = isFonnteActive ? 2 : 4;
+            batchBtn.innerHTML = `<span>⏸️ Jeda ${delaySeconds} detik sebelum pesan berikutnya...</span>`;
+            await new Promise(r => setTimeout(r, delaySeconds * 1000));
         }
     }
 
@@ -2334,35 +2518,43 @@ function setupBroadcastEventListeners() {
 
 let editingTemplateProdi = 'MBAJ';
 
+const PRODI_GREETING_NAMES_JS = {
+    'MBAJ': 'MBA Jakarta',
+    'MBAB': 'MBA Bandung',
+    'SW': 'Sarjana Kewirausahaan',
+    'SM': 'Sarjana Manajemen',
+    'MSM': 'Master of Science in Management (MSM)',
+    'DSM': 'Doctor of Science in Management (DSM)'
+};
+
 function getDefaultTemplateForProdi(prodiCode) {
-    const cfg = PRODI_DATA[prodiCode] || PRODI_DATA['MBAJ'];
-    const prodiName = cfg.name || 'SBM ITB';
+    const prodiGreeting = PRODI_GREETING_NAMES_JS[prodiCode] || PRODI_DATA[prodiCode]?.name || 'SBM ITB';
     return {
         id: {
-            intro: `Yth. Bapak/Ibu *{nama_dosen}*,\n\nDengan hormat, kami sampaikan jadwal perkuliahan di *${prodiName}* sebagai berikut:\n\n`,
-            closing: `\nDemikian informasi jadwal perkuliahan ini kami sampaikan. Atas perhatian dan kesediaan Bapak/Ibu, kami mengucapkan terima kasih.\n\nHormat kami,\n*Tim Akademik ${prodiName}*`,
+            intro: `Selamat pagi,\nMohon maaf mengganggu waktunya,\n\nPunten, izin konfirmasi dan reminder untuk jadwal pengajaran di ${prodiGreeting} mendatang sebagai berikut :`,
+            closing: `Demikian kami informasikan,\nTerima kasih.`,
             label_program: 'Program',
-            label_course: 'Mata Kuliah',
-            label_date: 'Hari, Tanggal',
+            label_course: 'Mata kuliah',
+            label_date: 'Tanggal',
             label_time: 'Waktu',
             label_room: 'Ruangan',
             label_guest_lecturer: 'Dosen Tamu',
             label_mentor: 'Mentor',
             label_remarks: 'Catatan',
-            exam_ask_all: 'Mohon konfirmasi apakah ujian akan dilaksanakan secara Offline (di kampus), Online, atau Take-Home?'
+            exam_ask_all: 'Terkait sesi ujian mendatang, mohon konfirmasi apakah ujian akan dilaksanakan secara Offline (di kampus), Online, atau Take-Home?'
         },
         en: {
-            intro: `Dear *{nama_dosen}*,\n\nWe would like to inform you of the lecture schedule at *${prodiName}* as follows:\n\n`,
-            closing: `\nThank you for your attention and dedication.\n\nBest regards,\n*Academic Operations Team - ${prodiName}*`,
+            intro: `Good morning,\nApologies for taking up your time,\n\nWe would like to confirm and remind you of the upcoming teaching schedule at ${prodiGreeting} as follows :`,
+            closing: `This is for your information,\nThank you.`,
             label_program: 'Program',
             label_course: 'Course',
-            label_date: 'Day, Date',
+            label_date: 'Date',
             label_time: 'Time',
             label_room: 'Room',
             label_guest_lecturer: 'Guest Lecturer',
             label_mentor: 'Mentor',
             label_remarks: 'Remarks',
-            exam_ask_all: 'Kindly confirm whether the exam will be conducted Offline (On-Campus), Online, or as a Take-Home exam.'
+            exam_ask_all: 'Regarding the upcoming examination session, kindly confirm whether the exam will be conducted Offline (On-Campus), Online, or as a Take-Home exam?'
         }
     };
 }
@@ -2455,8 +2647,8 @@ function populateTemplateFormFields(lang) {
     document.getElementById('inputTplIntro').value = (tpl.intro !== undefined) ? tpl.intro : (dflt.intro || '');
     document.getElementById('inputTplClosing').value = (tpl.closing !== undefined) ? tpl.closing : (dflt.closing || '');
     document.getElementById('inputLblProgram').value = (tpl.label_program !== undefined) ? tpl.label_program : (dflt.label_program || 'Program');
-    document.getElementById('inputLblCourse').value = (tpl.label_course !== undefined) ? tpl.label_course : (dflt.label_course || (lang === 'id' ? 'Mata Kuliah' : 'Course'));
-    document.getElementById('inputLblDate').value = (tpl.label_date !== undefined) ? tpl.label_date : (dflt.label_date || (lang === 'id' ? 'Hari, Tanggal' : 'Day, Date'));
+    document.getElementById('inputLblCourse').value = (tpl.label_course !== undefined) ? tpl.label_course : (dflt.label_course || (lang === 'id' ? 'Mata kuliah' : 'Course'));
+    document.getElementById('inputLblDate').value = (tpl.label_date !== undefined) ? tpl.label_date : (dflt.label_date || (lang === 'id' ? 'Tanggal' : 'Date'));
     document.getElementById('inputLblTime').value = (tpl.label_time !== undefined) ? tpl.label_time : (dflt.label_time || (lang === 'id' ? 'Waktu' : 'Time'));
     document.getElementById('inputLblRoom').value = (tpl.label_room !== undefined) ? tpl.label_room : (dflt.label_room || (lang === 'id' ? 'Ruangan' : 'Room'));
     document.getElementById('inputLblGuest').value = (tpl.label_guest_lecturer !== undefined) ? tpl.label_guest_lecturer : (dflt.label_guest_lecturer || (lang === 'id' ? 'Dosen Tamu' : 'Guest Lecturer'));
@@ -2471,8 +2663,8 @@ function updateTemplatePreview() {
     let introVal = document.getElementById('inputTplIntro').value.trim();
     const closingVal = document.getElementById('inputTplClosing').value.trim();
     const lblProg = document.getElementById('inputLblProgram').value.trim() || 'Program';
-    const lblCourse = document.getElementById('inputLblCourse').value.trim() || (isId ? 'Mata Kuliah' : 'Course');
-    const lblDate = document.getElementById('inputLblDate').value.trim() || (isId ? 'Hari, Tanggal' : 'Day, Date');
+    const lblCourse = document.getElementById('inputLblCourse').value.trim() || (isId ? 'Mata kuliah' : 'Course');
+    const lblDate = document.getElementById('inputLblDate').value.trim() || (isId ? 'Tanggal' : 'Date');
     const lblTime = document.getElementById('inputLblTime').value.trim() || (isId ? 'Waktu' : 'Time');
     const lblRoom = document.getElementById('inputLblRoom').value.trim() || (isId ? 'Ruangan' : 'Room');
     const lblGuest = document.getElementById('inputLblGuest').value.trim() || (isId ? 'Dosen Tamu' : 'Guest Lecturer');
@@ -2489,16 +2681,16 @@ function updateTemplatePreview() {
     const sampleProg = isId ? `Reguler (${editingTemplateProdi})` : `Regular (${editingTemplateProdi})`;
     const sampleCourse = "Strategic Management";
     const sampleDate = isId ? "Sabtu, 5 September 2026" : "Saturday, September 5, 2026";
-    const sampleTime = isId ? "09.00 - 12.00 WIB (1 Sesi) + UTS" : "09.00 - 12.00 WIB (1 Session) + MID EXAM";
+    const sampleTime = isId ? "09.00 - 12.00 WIB (1) sesi" : "09.00 - 12.00 WIB (1) session";
     const sampleRoom = prodiCfg.defaultLocation || "SBM ITB";
     
-    lines.push(`${lblProg} : ${sampleProg}`);
-    lines.push(`${lblCourse} : ${sampleCourse}`);
-    lines.push(`${lblDate} : ${sampleDate}`);
-    lines.push(`${lblTime} : ${sampleTime}`);
-    lines.push(`${lblRoom} : ${sampleRoom}`);
-    lines.push(`${lblGuest} : Dr. Hendra Gunawan`);
-    lines.push(`${lblMentor} : Kevin Sugiarto`);
+    lines.push(`${lblProg.padEnd(12, ' ')}: ${sampleProg}`);
+    lines.push(`${lblCourse.padEnd(12, ' ')}: ${sampleCourse}`);
+    lines.push(`${lblDate.padEnd(12, ' ')}: ${sampleDate}`);
+    lines.push(`${lblTime.padEnd(12, ' ')}: ${sampleTime}`);
+    lines.push(`${lblRoom.padEnd(12, ' ')}: ${sampleRoom}`);
+    lines.push(`${lblGuest.padEnd(12, ' ')}: Dr. Hendra Gunawan (10.00 - 12.00 WIB)`);
+    lines.push(`${lblMentor.padEnd(12, ' ')}: Kevin Sugiarto`);
 
     if (examQ) {
         lines.push(`\n${examQ}`);
@@ -2811,52 +3003,78 @@ function buildClientSideWhatsAppMessage(lec, prodi, lang = 'id') {
     const dflt = getDefaultTemplateForProdi(prodi)[lang];
     const tpl = (tpls && tpls[lang]) ? tpls[lang] : dflt;
 
-    let intro = tpl.intro || dflt.intro || (isEnglish ? 'Dear *{nama_dosen}*,\n\n' : 'Yth. Bapak/Ibu *{nama_dosen}*,\n\n');
-    intro = intro.replace('{nama_dosen}', lec.lecturer);
+    let intro = (tpl.intro || dflt.intro || '').trim();
+    if (intro.includes('{nama_dosen}')) {
+        intro = intro.replace('{nama_dosen}', lec.lecturer);
+    }
 
-    let lines = [intro];
+    let lines = [intro, ''];
 
     const lblProg = tpl.label_program || dflt.label_program || 'Program';
-    const lblCourse = tpl.label_course || dflt.label_course || (isEnglish ? 'Course' : 'Mata Kuliah');
-    const lblDate = tpl.label_date || dflt.label_date || (isEnglish ? 'Day, Date' : 'Hari, Tanggal');
+    const lblCourse = tpl.label_course || dflt.label_course || (isEnglish ? 'Course' : 'Mata kuliah');
+    const lblDate = tpl.label_date || dflt.label_date || (isEnglish ? 'Date' : 'Tanggal');
     const lblTime = tpl.label_time || dflt.label_time || (isEnglish ? 'Time' : 'Waktu');
     const lblRoom = tpl.label_room || dflt.label_room || (isEnglish ? 'Room' : 'Ruangan');
     const lblGuest = tpl.label_guest_lecturer || dflt.label_guest_lecturer || (isEnglish ? 'Guest Lecturer' : 'Dosen Tamu');
     const lblMentor = tpl.label_mentor || dflt.label_mentor || 'Mentor';
     const lblRemarks = tpl.label_remarks || dflt.label_remarks || (isEnglish ? 'Remarks' : 'Catatan');
 
+    let hasExam = false;
+
     lec.sessions.forEach((s, idx) => {
         const prefix = lec.sessions.length > 1 ? `*Jadwal ${idx + 1}:*\n` : '';
         if (prefix) lines.push(prefix);
 
-        lines.push(`${lblProg} : ${s.program || cfg.name}`);
-        lines.push(`${lblCourse} : ${s.course}`);
-        lines.push(`${lblDate} : ${s.formatted_date}`);
-        lines.push(`${lblTime} : ${s.time} WIB`);
-        lines.push(`${lblRoom} : ${s.room || cfg.defaultLocation}`);
+        lines.push(`${lblProg.padEnd(12, ' ')}: ${s.program || cfg.name}`);
+        lines.push(`${lblCourse.padEnd(12, ' ')}: ${s.course}`);
+        lines.push(`${lblDate.padEnd(12, ' ')}: ${s.formatted_date}`);
 
-        if (s.guest_lecturer) {
-            lines.push(`${lblGuest} : ${s.guest_lecturer}`);
+        // Time, Session, and Exam logic
+        const sessionCount = s.sessions || '1';
+        let timeLine = s.time ? `${s.time} WIB` : '';
+        
+        if (s.is_exam) {
+            hasExam = true;
+            const examType = String(s.exam_type || '').toLowerCase();
+            const courseName = String(s.course || '').toLowerCase();
+            const remarksText = String(s.remarks || '').toLowerCase();
+            const isUas = examType.includes('uas') || examType.includes('final') || courseName.includes('uas') || courseName.includes('final') || remarksText.includes('uas') || remarksText.includes('final');
+            const examTag = isUas ? '+ Final Exam' : '+ Mid Exam';
+            timeLine = `${timeLine} ${examTag}`.trim();
+        } else {
+            const unit = isEnglish ? (sessionCount === '1' ? 'session' : 'sessions') : 'sesi';
+            timeLine = `${timeLine} (${sessionCount}) ${unit}`.trim();
         }
-        if (s.mentors) {
-            lines.push(`${lblMentor} : ${s.mentors}`);
+
+        lines.push(`${lblTime.padEnd(12, ' ')}: ${timeLine}`);
+        lines.push(`${lblRoom.padEnd(12, ' ')}: ${s.room || cfg.defaultLocation}`);
+
+        if (s.guest_lecturer && s.guest_lecturer.trim() && s.guest_lecturer.trim() !== '-' && s.guest_lecturer.trim() !== 'None') {
+            lines.push(`${lblGuest.padEnd(12, ' ')}: ${s.guest_lecturer}`);
         }
-        if (s.remarks) {
-            lines.push(`${lblRemarks} : ${s.remarks}`);
+        if (s.mentors && s.mentors.trim() && s.mentors.trim() !== '-' && s.mentors.trim() !== 'None') {
+            lines.push(`${lblMentor.padEnd(12, ' ')}: ${s.mentors}`);
         }
-        if (s.is_exam && tpl.exam_ask_all) {
-            lines.push(`\n${tpl.exam_ask_all}`);
+        if (s.remarks && s.remarks.trim() && s.remarks.trim() !== '-' && !s.remarks.toLowerCase().startsWith('guest')) {
+            lines.push(`${lblRemarks.padEnd(12, ' ')}: ${s.remarks}`);
         }
         lines.push('');
     });
 
-    if (tpl.closing) {
-        lines.push(tpl.closing.trim());
-    } else if (dflt.closing) {
-        lines.push(dflt.closing.trim());
+    if (hasExam) {
+        const examQ = tpl.exam_ask_all || dflt.exam_ask_all;
+        if (examQ) {
+            lines.push(examQ.trim());
+            lines.push('');
+        }
     }
 
-    return lines.join('\n');
+    const closing = (tpl.closing || dflt.closing || '').trim();
+    if (closing) {
+        lines.push(closing);
+    }
+
+    return lines.join('\n').trim();
 }
 
 async function loadClientSideMetadata(prodi) {

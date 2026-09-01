@@ -37,11 +37,11 @@ PRODI_GREETING_NAMES = {
 
 DEFAULT_TEMPLATES = {
     "id": {
-        "intro": "Selamat pagi. Izin konfirmasi dan reminder untuk jadwal perkuliahan di {prodi_name} mendatang sebagai berikut :",
+        "intro": "Selamat pagi,\nMohon maaf mengganggu waktunya,\n\nPunten, izin konfirmasi dan reminder untuk jadwal pengajaran di {prodi_name} mendatang sebagai berikut :",
         "closing": "Demikian kami informasikan,\nTerima kasih.",
         "label_program": "Program",
-        "label_course": "Mata Kuliah",
-        "label_date": "Hari, Tanggal",
+        "label_course": "Mata kuliah",
+        "label_date": "Tanggal",
         "label_time": "Waktu",
         "label_room": "Ruangan",
         "label_guest_lecturer": "Dosen Tamu",
@@ -56,11 +56,11 @@ DEFAULT_TEMPLATES = {
         "exam_ask_takehome": "mohon konfirmasi apakah ujian akan dilaksanakan secara Take-Home?"
     },
     "en": {
-        "intro": "Good morning. Kindly confirm and reminder for the upcoming lecture schedule at {prodi_name} as follows :",
+        "intro": "Good morning,\nApologies for taking up your time,\n\nWe would like to confirm and remind you of the upcoming teaching schedule at {prodi_name} as follows :",
         "closing": "This is for your information,\nThank you.",
         "label_program": "Program",
         "label_course": "Course",
-        "label_date": "Day, Date",
+        "label_date": "Date",
         "label_time": "Time",
         "label_room": "Room",
         "label_guest_lecturer": "Guest Lecturer",
@@ -186,37 +186,25 @@ def build_whatsapp_message(lecturer_name, sessions, overrides=None, lang="en", t
         
         # Determine exam label
         month_str = iso_date[5:7] if iso_date else ""
+        raw_exam = str(overrides.get(f"{sched_id}_exam_label") or s.get("exam_type") or "").lower()
+        raw_course = str(custom_course or "").lower()
+        raw_rem = str(s.get("remarks") or "").lower()
+        
+        is_uas = "uas" in raw_exam or "final" in raw_exam or "uas" in raw_course or "final" in raw_course or "uas" in raw_rem or "final" in raw_rem
         if is_id:
-            default_exam_label = "UTS" if (month_str and month_str <= "10") else "UAS"
+            exam_label = "+ Final Exam" if is_uas else "+ Mid Exam"
         else:
-            default_exam_label = "MID EXAM" if (month_str and month_str <= "10") else "FINAL EXAM"
-            
-        exam_label = overrides.get(f"{sched_id}_exam_label") or s.get("exam_type") or default_exam_label
-        if is_id:
-            if "mid" in exam_label.lower() or "uts" in exam_label.lower():
-                exam_label = "UTS"
-            elif "final" in exam_label.lower() or "uas" in exam_label.lower():
-                exam_label = "UAS"
+            exam_label = "+ Final Exam" if is_uas else "+ Mid Exam"
         
         # Format Time line with sessions and exam tag
-        session_val = str(s.get("sessions") or "").strip()
-        time_part = f"{custom_time} WIB"
+        session_val = str(s.get("sessions") or "1").strip()
+        time_part = f"{custom_time} WIB" if custom_time else ""
         
-        if session_val:
-            if is_id:
-                unit = "Sesi"
-            else:
-                unit = "Session" if session_val == "1" else "Sessions"
-            session_str = f"({session_val} {unit})"
-            if is_session_exam:
-                time_line_val = f"{time_part} {session_str} + {exam_label}"
-            else:
-                time_line_val = f"{time_part} {session_str}"
+        if is_session_exam:
+            time_line_val = f"{time_part} {exam_label}".strip()
         else:
-            if is_session_exam:
-                time_line_val = f"{time_part} + {exam_label}"
-            else:
-                time_line_val = f"{time_part}"
+            unit = "sesi" if is_id else ("session" if session_val == "1" else "sessions")
+            time_line_val = f"{time_part} ({session_val}) {unit}".strip()
         
         program_display = custom_program
         if custom_class and custom_class != custom_program:
@@ -228,17 +216,17 @@ def build_whatsapp_message(lecturer_name, sessions, overrides=None, lang="en", t
             header = f"*Schedule {idx}:*\n" if len(sorted_sessions) > 1 else ""
         
         lbl_prog = tpl.get("label_program", "Program")
-        lbl_crs = tpl.get("label_course", "Mata Kuliah" if is_id else "Course")
-        lbl_dt = tpl.get("label_date", "Hari, Tanggal" if is_id else "Day, Date")
+        lbl_crs = tpl.get("label_course", "Mata kuliah" if is_id else "Course")
+        lbl_dt = tpl.get("label_date", "Tanggal" if is_id else "Date")
         lbl_tm = tpl.get("label_time", "Waktu" if is_id else "Time")
         lbl_rm = tpl.get("label_room", "Ruangan" if is_id else "Room")
 
         lines = [
-            f"{lbl_prog} : {program_display}",
-            f"{lbl_crs} : {custom_course}",
-            f"{lbl_dt} : {custom_date}",
-            f"{lbl_tm} : {time_line_val}",
-            f"{lbl_rm} : {custom_room}"
+            f"{lbl_prog.ljust(12)}: {program_display}",
+            f"{lbl_crs.ljust(12)}: {custom_course}",
+            f"{lbl_dt.ljust(12)}: {custom_date}",
+            f"{lbl_tm.ljust(12)}: {time_line_val}",
+            f"{lbl_rm.ljust(12)}: {custom_room}"
         ]
         
         # Check if the recipient lecturer IS the guest lecturer himself
@@ -249,7 +237,7 @@ def build_whatsapp_message(lecturer_name, sessions, overrides=None, lang="en", t
         # Only add Guest Lecturer line if there is a guest lecturer AND recipient is not the guest lecturer himself
         if guest_lecture and guest_lecture.strip() not in ["-", "None", ""] and not is_self_guest:
             gl_label = tpl.get("label_guest_lecturer", 'Dosen Tamu' if is_id else 'Guest Lecturer')
-            lines.append(f"{gl_label} : {guest_lecture.strip()}")
+            lines.append(f"{gl_label.ljust(12)}: {guest_lecture.strip()}")
             
         # Add Mentor line if present
         if mentor and mentor.strip() not in ["-", "None", ""]:

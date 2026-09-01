@@ -1,6 +1,6 @@
-2026/09/01-14:14:29.133 5bd8 Reusing MANIFEST C:\MBA JKT (Taufiq)\Antigravity\WA Automation\wa_browser_profile\Default\EdgeCoupons/coupons_data.db/MANIFEST-000001
-2026/09/01-14:14:29.135 5bd8 Recovering log #62
-2026/09/01-14:14:29.137 5bd8 Reusing old log C:\MBA JKT (Taufiq)\Antigravity\WA Automation\wa_browser_profile\Default\EdgeCoupons/coupons_data.db/000062.log 
-2026/09/01-14:14:29.263 6528 Level-0 table #66: started
-2026/09/01-14:14:29.381 6528 Level-0 table #66: 683444 bytes OK
-2026/09/01-14:14:29.683 6528 Delete type=0 #62
+2026/09/01-17:56:41.284 510c Reusing MANIFEST C:\MBA JKT (Taufiq)\Antigravity\WA Automation\wa_browser_profile\Default\EdgeCoupons/coupons_data.db/MANIFEST-000001
+2026/09/01-17:56:41.285 510c Recovering log #65
+2026/09/01-17:56:41.286 510c Reusing old log C:\MBA JKT (Taufiq)\Antigravity\WA Automation\wa_browser_profile\Default\EdgeCoupons/coupons_data.db/000065.log 
+2026/09/01-17:56:41.354 420c Level-0 table #69: started
+2026/09/01-17:56:41.358 420c Level-0 table #69: 683444 bytes OK
+2026/09/01-17:56:41.359 420c Delete type=0 #65
